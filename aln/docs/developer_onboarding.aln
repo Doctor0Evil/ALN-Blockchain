@@ -1,0 +1,223 @@
+# Developer Onboarding Guide - ALN Blockchain
+
+[header]
+document_type: guide
+title: "ALN Developer Onboarding"
+audience: "New developers joining ALN blockchain project"
+last_updated: 1732723200
+
+[prerequisites]
+node_js: ">=18.0.0"
+npm: ">=9.0.0"
+git: "any recent version"
+editor: "VS Code recommended"
+os_support: "Windows, macOS, Linux"
+
+[quick_start]
+
+step_1: "Clone repository"
+step_1_command: |
+  git clone https://github.com/Doctor0Evil/ALN.git
+  cd ALN+Blockchain
+
+step_2: "Install all dependencies"
+step_2_command: |
+  npm run install-all
+
+step_3: "Initialize node"
+step_3_command: |
+  cd aln/core
+  node cli/aln_node_cli.js init
+
+step_4: "Start blockchain node"
+step_4_command: |
+  node cli/aln_node_cli.js start
+
+step_5: "In new terminal, start explorer"
+step_5_command: |
+  cd aln/explorer
+  npm start
+
+step_6: "Open browser"
+step_6_url: "http://localhost:8080"
+
+[development_workflow]
+
+workflow_1: "Create feature branch"
+workflow_1_command: "git checkout -b feature/your-feature-name"
+
+workflow_2: "Make changes and test"
+workflow_2_commands: |
+  # Edit files
+  # Run tests
+  npm test --workspace=aln/tests
+  
+  # Lint ALN files
+  node aln/tools/aln_linter.js aln/
+
+workflow_3: "Commit and push"
+workflow_3_commands: |
+  git add .
+  git commit -m "feat: your feature description"
+  git push origin feature/your-feature-name
+
+workflow_4: "Create pull request"
+workflow_4_note: "Use GitHub UI to create PR to main branch"
+
+[project_structure_tour]
+
+core_module: "aln/core/ - Blockchain runtime, consensus, state management"
+core_entry_point: "aln/core/cli/aln_node_cli.js"
+core_key_files: [
+  "runtime/aln_parser.js - Parse ALN documents",
+  "state/state_store.js - Persistent state",
+  "consensus/solo_consensus.js - Block production",
+  "api/http_server.js - REST/WebSocket API"
+]
+
+explorer_module: "aln/explorer/ - Web UI for blockchain visualization"
+explorer_files: [
+  "index.html - Main UI structure",
+  "app.js - JavaScript logic",
+  "style.css - Styling"
+]
+
+wallet_module: "aln/wallet/ - Non-custodial transaction builder"
+wallet_key_file: "tx_builder.js - Build and sign transactions"
+
+dao_module: "aln/dao/ - Governance and CHATAI token"
+dao_specs: [
+  "spec/governogram.aln - Proposal format",
+  "contracts/CHATAI.aln - Token specification"
+]
+
+migration_module: "aln/migration/ - Cross-chain bridge (Canto→ALN)"
+migration_specs: "spec/migration_state.aln"
+
+[common_tasks]
+
+task_add_new_op_code:
+  description: "Add new operation type to ALN"
+  steps: [
+    "1. Add op_code to aln/core/spec/aln-syntax.aln",
+    "2. Update parser validation in aln/core/runtime/aln_parser.js",
+    "3. Implement handler in aln/core/state/state_store.js",
+    "4. Add safety checks in aln/core/safety/qpu_math_hooks.js",
+    "5. Write tests in aln/tests/unit/",
+    "6. Update documentation"
+  ]
+
+task_add_governance_proposal_type:
+  description: "Add new governance proposal category"
+  steps: [
+    "1. Add template to aln/dao/spec/governogram.aln",
+    "2. Implement execution route handler",
+    "3. Update governance UI in aln/explorer/",
+    "4. Add validation rules",
+    "5. Test on local node"
+  ]
+
+task_modify_explorer_ui:
+  description: "Change explorer appearance or add panel"
+  steps: [
+    "1. Edit aln/explorer/index.html for structure",
+    "2. Update aln/explorer/style.css for styling",
+    "3. Add logic in aln/explorer/app.js",
+    "4. Test in browser with live node"
+  ]
+
+[debugging_tips]
+
+tip_1: "Use structured logs - all logs are JSON with node_id and context"
+tip_1_example: "grep 'ERROR' logs/aln_node.log | jq ."
+
+tip_2: "Check mempool if transactions not included"
+tip_2_command: "curl http://localhost:3000/status | jq .data.mempoolSize"
+
+tip_3: "Use WebSocket for real-time events"
+tip_3_tool: "wscat -c ws://localhost:3001"
+
+tip_4: "Inspect state directly via LevelDB CLI"
+tip_4_command: "level-dump ./data/state"
+
+tip_5: "Test chainlexemes before submitting"
+tip_5_method: "Use aln_parser.js to parse and validate locally"
+
+[testing_guide]
+
+run_all_tests: "npm test"
+run_unit_tests: "npm run test:unit --workspace=aln/tests"
+run_e2e_tests: "npm run test:e2e --workspace=aln/tests"
+
+write_new_test:
+  file: "aln/tests/unit/your_module.test.js"
+  template: |
+    const { yourFunction } = require('../../core/your_module');
+    
+    describe('Your Module', () => {
+      test('should do something', () => {
+        const result = yourFunction();
+        expect(result).toBe(expected);
+      });
+    });
+
+[deployment_checklist]
+
+pre_deploy: [
+  "Run full test suite and ensure all pass",
+  "Lint all ALN files with zero errors",
+  "Update version numbers in package.json files",
+  "Run security audit: npm audit",
+  "Test migration on testnet",
+  "Verify governance proposals work end-to-end",
+  "Check nanotopologene profile matches environment"
+]
+
+deploy_steps: [
+  "Build production bundles",
+  "Deploy node infrastructure",
+  "Initialize genesis accounts",
+  "Start consensus nodes",
+  "Deploy explorer to hosting",
+  "Verify all APIs responding",
+  "Monitor logs for errors"
+]
+
+post_deploy: [
+  "Test transaction submission",
+  "Verify block production",
+  "Check WebSocket connections",
+  "Test wallet functionality",
+  "Monitor system metrics"
+]
+
+[resources]
+
+documentation: "ALN+Blockchain/aln/docs/"
+aln_syntax_spec: "aln/core/spec/aln-syntax.aln"
+error_codes: "aln/core/logging/errors.aln"
+api_docs: "README.aln.md"
+community: "GitHub Discussions"
+
+[troubleshooting]
+
+issue_node_wont_start:
+  cause: "Data directory not initialized"
+  solution: "Run: node cli/aln_node_cli.js init"
+
+issue_transactions_failing:
+  cause: "Invalid nonce or signature"
+  solution: "Check nonce matches account state, verify signature format"
+
+issue_explorer_not_connecting:
+  cause: "Node API not running or CORS issue"
+  solution: "Verify node is running on port 3000, check browser console"
+
+issue_tests_failing:
+  cause: "Dependencies not installed or outdated"
+  solution: "Run: npm ci to clean install dependencies"
+
+[footer]
+maintainer: "ALN Core Team"
+version: "1.0"
+feedback: "Open GitHub issue for questions or improvements"

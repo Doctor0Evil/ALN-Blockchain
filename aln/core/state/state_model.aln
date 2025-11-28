@@ -1,0 +1,105 @@
+[header]
+document_type: specification
+title: "ALN State Model - Global Ledger State Structure"
+scope: "Defines all state objects and their organization"
+
+[state_tree]
+root_hash: "Merkle root of entire state"
+accounts: "Map of address -> Account"
+balances: "Map of (address, asset) -> Balance"
+validators: "Map of validator_id -> Validator"
+proposals: "Map of proposal_id -> Proposal"
+migrations: "Map of migration_id -> Migration"
+
+[account_schema]
+address: "addr (aln1...)"
+nonce: "u64 (transaction counter)"
+balance: "u256 (native ALN tokens)"
+token_balances: "Map of token_id -> u256"
+voting_power: "u256 (CHATAI-based)"
+delegated_to: "addr or null"
+code_hash: "bytes32 (for smart contract accounts, future)"
+storage_root: "bytes32 (account-specific storage root)"
+
+[account_example]
+example_address: "aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e"
+example_nonce: 42
+example_balance: 1000000000000000000
+example_token_balances: {"CHATAI": 50000000}
+example_voting_power: 50000000
+example_delegated_to: null
+
+[validator_schema]
+validator_id: "addr"
+pub_key: "bytes (ed25519 public key)"
+voting_power: "u64 (consensus weight)"
+commission_rate: "u64 (basis points, e.g., 500 = 5%)"
+total_stake: "u256"
+status: "active | inactive | jailed"
+jailed_until: "u64 (block height) or null"
+
+[proposal_schema]
+proposal_id: "string (unique identifier)"
+proposer: "addr"
+title: "string"
+description: "string"
+category: "parameter_change | treasury_spend | contract_upgrade | other"
+execution_route: "string (module.function)"
+status: "pending | active | passed | rejected | executed | cancelled"
+snapshot_block: "u64 (block height for vote snapshot)"
+voting_start: "u64 (block height)"
+voting_end: "u64 (block height)"
+quorum: "u64 (basis points)"
+threshold: "u64 (basis points)"
+votes_for: "u256"
+votes_against: "u256"
+votes_abstain: "u256"
+execution_data: "bytes (encoded function arguments)"
+
+[migration_schema]
+migration_id: "string (unique identifier)"
+source_chain: "string (e.g., 'canto')"
+source_tx_hash: "bytes32"
+source_block_height: "u64"
+dest_address: "addr (ALN address)"
+asset_type: "string"
+amount: "u256"
+proof_hash: "bytes32"
+escrow_address: "string (source chain address)"
+status: "pending | verified | minted | failed"
+created_at: "u64 (timestamp)"
+completed_at: "u64 (timestamp) or null"
+
+[state_operations]
+op_get_account: "getAccount(addr) -> Account"
+op_set_account: "setAccount(addr, account) -> void"
+op_apply_transaction: "applyTransaction(chainlexeme) -> Result"
+op_compute_state_root: "computeStateRoot() -> bytes32"
+op_snapshot_state: "snapshotState(block_height) -> StateSnapshot"
+
+[determinism_requirements]
+requirement_1: "All state transitions must be deterministic given same input"
+requirement_2: "State serialization must use canonical ordering (sorted keys)"
+requirement_3: "Hash functions must use SHA-256 for compatibility"
+requirement_4: "No floating-point arithmetic in state calculations"
+requirement_5: "Timestamps from block header, not system time"
+
+[storage_layout]
+db_backend: "LevelDB or RocksDB-compatible"
+key_prefix_accounts: "acc:"
+key_prefix_balances: "bal:"
+key_prefix_validators: "val:"
+key_prefix_proposals: "prop:"
+key_prefix_migrations: "mig:"
+key_prefix_metadata: "meta:"
+
+[storage_examples]
+example_account_key: "acc:aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e"
+example_balance_key: "bal:aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e:ALN"
+example_proposal_key: "prop:gov_001"
+example_migration_key: "mig:mig_20231127_001"
+
+[footer]
+validation_status: "CANONICAL"
+schema_version: "1.0"
+last_updated: 1732723200

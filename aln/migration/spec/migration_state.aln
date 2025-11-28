@@ -1,0 +1,56 @@
+[header]
+document_type: specification
+title: "Migration State Schema - Cross-Chain Tracking"
+scope: "Defines structure for Canto→ALN migration events"
+
+[migration_state_schema]
+migration_id: "string (unique identifier, typically source_tx_hash)"
+source_chain: "string (e.g., 'canto')"
+source_tx_hash: "bytes32 (transaction hash on source chain)"
+source_block_height: "u64 (block height on source chain)"
+dest_address: "addr (ALN destination address)"
+asset_type: "string (asset identifier)"
+amount: "u256 (amount migrated)"
+proof_hash: "bytes32 (cryptographic proof)"
+escrow_address: "string (source chain escrow address)"
+status: "pending | verified | minted | failed"
+created_at: "u64 (Unix timestamp)"
+completed_at: "u64 (Unix timestamp or null)"
+bridge_validator: "addr (ALN validator who processed)"
+
+[migration_statuses]
+pending: "Migration initiated on source chain, awaiting confirmation"
+verified: "Source chain transaction verified, proof validated"
+minted: "Assets minted on ALN chain successfully"
+failed: "Migration failed verification or processing"
+
+[migragraph_data_point]
+timestamp: "u64 (when migration completed)"
+amount: "u256 (amount migrated)"
+cumulative_amount: "u256 (running total)"
+migration_count: "u64 (total migrations so far)"
+
+[migration_events]
+event_lock: "Assets locked on source chain escrow"
+event_proof_submitted: "Proof submitted to ALN bridge"
+event_verified: "Proof verified by bridge validators"
+event_mint: "Assets minted on ALN chain"
+
+[example_migration]
+example_migration_id: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b"
+example_source_chain: "canto"
+example_source_tx_hash: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b"
+example_source_block_height: 1234567
+example_dest_address: "aln1qy8rumpzxplv4n6w5c3kxqzr9dn2vq9z4mhqje"
+example_asset_type: "CANTO_BRIDGED"
+example_amount: "5000000000000000000"
+example_proof_hash: "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b"
+example_escrow_address: "canto1escrow000000000000000000000000000"
+example_status: "minted"
+example_created_at: 1732723200
+example_completed_at: 1732723500
+
+[footer]
+validation_status: "CANONICAL"
+schema_version: "1.0"
+last_updated: 1732723200

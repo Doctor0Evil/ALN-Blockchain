@@ -1,0 +1,107 @@
+[header]
+document_type: error_registry
+title: "ALN Error Codes and Logging Standards"
+scope: "Centralized error code definitions for ALN blockchain"
+
+[error_categories]
+category_syntax: "ALN_ERR_SYNTAX_*"
+category_balance: "ALN_ERR_BALANCE_*"
+category_governance: "ALN_ERR_GOVERNANCE_*"
+category_migration: "ALN_ERR_MIGRATION_*"
+category_consensus: "ALN_ERR_CONSENSUS_*"
+category_network: "ALN_ERR_NETWORK_*"
+category_validation: "ALN_ERR_VALIDATION_*"
+
+[syntax_errors]
+ALN_ERR_SYNTAX_001: "Invalid chainlexeme structure"
+ALN_ERR_SYNTAX_002: "Missing required section (header/data/footer)"
+ALN_ERR_SYNTAX_003: "Invalid op_code"
+ALN_ERR_SYNTAX_004: "Malformed field value"
+ALN_ERR_SYNTAX_005: "Document exceeds size limit"
+
+[balance_errors]
+ALN_ERR_BALANCE_001: "Insufficient balance"
+ALN_ERR_BALANCE_002: "Negative amount not allowed"
+ALN_ERR_BALANCE_003: "Amount exceeds maximum"
+ALN_ERR_BALANCE_004: "Conservation law violated"
+ALN_ERR_BALANCE_005: "Token not found"
+
+[governance_errors]
+ALN_ERR_GOVERNANCE_001: "Proposal not found"
+ALN_ERR_GOVERNANCE_002: "Invalid voting period"
+ALN_ERR_GOVERNANCE_003: "Insufficient voting power"
+ALN_ERR_GOVERNANCE_004: "Quorum not reached"
+ALN_ERR_GOVERNANCE_005: "Proposal already executed"
+ALN_ERR_GOVERNANCE_006: "Invalid governogram structure"
+
+[migration_errors]
+ALN_ERR_MIGRATION_001: "Invalid migration proof"
+ALN_ERR_MIGRATION_002: "Source chain not supported"
+ALN_ERR_MIGRATION_003: "Migration already processed"
+ALN_ERR_MIGRATION_004: "Escrow verification failed"
+ALN_ERR_MIGRATION_005: "Bridge contract not found"
+
+[consensus_errors]
+ALN_ERR_CONSENSUS_001: "Invalid block height"
+ALN_ERR_CONSENSUS_002: "Invalid parent hash"
+ALN_ERR_CONSENSUS_003: "Block timestamp invalid"
+ALN_ERR_CONSENSUS_004: "State root mismatch"
+ALN_ERR_CONSENSUS_005: "Transaction root mismatch"
+
+[network_errors]
+ALN_ERR_NETWORK_001: "Peer connection failed"
+ALN_ERR_NETWORK_002: "Message signature invalid"
+ALN_ERR_NETWORK_003: "Rate limit exceeded"
+ALN_ERR_NETWORK_004: "Invalid message format"
+ALN_ERR_NETWORK_005: "Peer blacklisted"
+
+[validation_errors]
+ALN_ERR_VALIDATION_001: "Invalid nonce"
+ALN_ERR_VALIDATION_002: "Invalid signature"
+ALN_ERR_VALIDATION_003: "Gas limit too low"
+ALN_ERR_VALIDATION_004: "Gas limit too high"
+ALN_ERR_VALIDATION_005: "Constraint not satisfied"
+ALN_ERR_VALIDATION_006: "Timestamp out of range"
+
+[logging_format]
+format: "JSON structured logging"
+required_fields: ["timestamp", "level", "node_id", "message", "context"]
+optional_fields: ["block_height", "tx_hash", "error_code", "duration_ms"]
+levels: ["DEBUG", "INFO", "WARN", "ERROR", "FATAL"]
+
+[logging_examples]
+example_1_title: "Transaction validation error"
+example_1_content: |
+  {
+    "timestamp": "2024-11-27T12:34:56.789Z",
+    "level": "ERROR",
+    "node_id": "node_001",
+    "message": "Transaction validation failed",
+    "context": {
+      "error_code": "ALN_ERR_BALANCE_001",
+      "tx_hash": "0x7a8b9c...",
+      "from_address": "aln1qpzry9x...",
+      "required_balance": "1000000",
+      "actual_balance": "500000"
+    }
+  }
+
+example_2_title: "Block production success"
+example_2_content: |
+  {
+    "timestamp": "2024-11-27T12:35:00.123Z",
+    "level": "INFO",
+    "node_id": "node_001",
+    "message": "Block produced successfully",
+    "context": {
+      "block_height": 1234,
+      "block_hash": "0x9f8e7d...",
+      "tx_count": 42,
+      "duration_ms": 234
+    }
+  }
+
+[footer]
+validation_status: "CANONICAL"
+schema_version: "1.0"
+last_updated: 1732723200

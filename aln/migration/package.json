@@ -1,0 +1,9 @@
+{
+  "name": "@aln/migration",
+  "version": "1.0.0",
+  "description": "ALN cross-chain migration bridge (Canto→ALN)",
+  "main": "runtime/migration_recorder.js",
+  "scripts": {
+    "test": "echo \"No tests yet\""
+  }
+}

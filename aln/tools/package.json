@@ -1,0 +1,9 @@
+{
+  "name": "@aln/tools",
+  "version": "1.0.0",
+  "description": "ALN development tools and linter",
+  "main": "aln_linter.js",
+  "scripts": {
+    "lint": "node aln_linter.js"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "testEnvironment": "node",
+  "coverageDirectory": "coverage",
+  "collectCoverageFrom": [
+    "aln/**/*.js",
+    "!aln/**/node_modules/**",
+    "!aln/**/*.test.js"
+  ],
+  "testMatch": [
+    "**/tests/**/*.test.js"
+  ]
+}

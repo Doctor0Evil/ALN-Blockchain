@@ -1,0 +1,13 @@
+{
+  "name": "@aln/tests",
+  "version": "1.0.0",
+  "description": "ALN blockchain test suite",
+  "scripts": {
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:e2e": "jest --testPathPattern=e2e"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

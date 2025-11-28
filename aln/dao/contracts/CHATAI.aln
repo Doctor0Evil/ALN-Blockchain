@@ -1,0 +1,40 @@
+[header]
+document_type: token_specification
+title: "CHATAI Token on ALN Blockchain"
+scope: "Migration of CHATAI token from Canto to ALN chain"
+
+[token_info]
+name: "CHATAI"
+symbol: "CHATAI"
+decimals: 18
+total_supply: "1000000000000000000000000000"
+
+[distribution]
+team: "150000000000000000000000000"
+treasury: "250000000000000000000000000"
+rewards: "300000000000000000000000000"
+liquidity: "200000000000000000000000000"
+airdrops: "100000000000000000000000000"
+
+[token_functions]
+mint: "Restricted to governance only"
+transfer: "Standard ERC20-like transfer"
+burn: "Anyone can burn their own tokens"
+claimRewards: "Claim staking rewards from reward pool"
+delegate: "Delegate voting power to another address"
+
+[governance_integration]
+voting_power_calculation: "voting_power = token_balance + delegated_votes"
+snapshot_mechanism: "Voting power frozen at proposal creation block"
+min_proposal_threshold: "1000000000000000000000"
+
+[migration_from_canto]
+canto_token_address: "canto1chatai..."
+bridge_contract: "canto1bridge..."
+migration_ratio: "1:1"
+migration_status: "active"
+
+[footer]
+validation_status: "CANONICAL"
+schema_version: "1.0"
+last_updated: 1732723200

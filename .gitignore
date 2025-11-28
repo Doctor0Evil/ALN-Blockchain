@@ -1,0 +1,28 @@
+node_modules/
+*.log
+*.pid
+.DS_Store
+.env
+.env.local
+
+# Data directories
+data/
+logs/
+
+# Build outputs
+dist/
+build/
+*.bundle.js
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+.nyc_output/
+
+# OS
+Thumbs.db

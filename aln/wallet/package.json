@@ -1,0 +1,9 @@
+{
+  "name": "@aln/wallet",
+  "version": "1.0.0",
+  "description": "ALN non-custodial browser wallet",
+  "main": "tx_builder.js",
+  "scripts": {
+    "test": "echo \"No tests yet\""
+  }
+}

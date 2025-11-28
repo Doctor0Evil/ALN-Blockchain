@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALN Blockchain Explorer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔗 ALN Blockchain Explorer</h1>
+            <p class="tagline">nanotopologene_profile: surgical-grade | ai_firmware_version: ALN.QPU.Math+</p>
+        </header>
+
+        <main class="grid-layout">
+            <!-- Status Panel -->
+            <section id="status_panel" class="panel">
+                <h2>📊 Chain Status</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="label">Block Height</span>
+                        <span id="block_height" class="value">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Latest Block</span>
+                        <span id="latest_block_hash" class="value hash">—</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Mempool</span>
+                        <span id="mempool_size" class="value">0 tx</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Node Status</span>
+                        <span id="node_status" class="value badge">🔴 Offline</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Migration Status</span>
+                        <span id="migration_status" class="value badge">⏸️ Idle</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Last Update</span>
+                        <span id="last_update" class="value">—</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Activity Chart -->
+            <section id="activity_panel" class="panel">
+                <h2>📈 Block Activity</h2>
+                <canvas id="activity_chart"></canvas>
+            </section>
+
+            <!-- Migragraph Chart -->
+            <section id="migration_panel" class="panel">
+                <h2>🌉 Migragraph (Canto→ALN)</h2>
+                <canvas id="migragraph_chart"></canvas>
+            </section>
+
+            <!-- Wallet Panel -->
+            <section id="wallet_panel" class="panel">
+                <h2>💼 Wallet</h2>
+                <div class="wallet-content">
+                    <div class="wallet-address">
+                        <strong>Address:</strong>
+                        <span id="wallet_address" class="hash">Not connected</span>
+                    </div>
+                    <div class="wallet-balance">
+                        <strong>Balance:</strong>
+                        <span id="wallet_balance">0 ALN</span>
+                    </div>
+                    <button id="generate_wallet_btn" class="btn btn-primary">Generate New Wallet</button>
+                    <button id="connect_wallet_btn" class="btn btn-secondary">Connect Wallet</button>
+                    
+                    <div class="wallet-actions" id="wallet_actions" style="display: none;">
+                        <h3>Send ALN</h3>
+                        <form id="send_form">
+                            <input type="text" id="send_to" placeholder="Recipient address (aln1...)" required>
+                            <input type="number" id="send_amount" placeholder="Amount" step="0.000001" required>
+                            <input type="text" id="send_memo" placeholder="Memo (optional)">
+                            <button type="submit" class="btn btn-primary">Send Transaction</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Governance Panel -->
+            <section id="governance_panel" class="panel">
+                <h2>🏛️ DAO Governance</h2>
+                <div id="proposals_list" class="proposals-list">
+                    <p class="empty-state">No active proposals</p>
+                </div>
+                <button id="create_proposal_btn" class="btn btn-secondary">Create Proposal</button>
+            </section>
+
+            <!-- Recent Blocks -->
+            <section id="blocks_panel" class="panel">
+                <h2>🧱 Recent Blocks</h2>
+                <div id="blocks_list" class="blocks-list">
+                    <p class="empty-state">Loading...</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>ALN Blockchain v1.0 | Non-custodial | Powered by QPU.Math+</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

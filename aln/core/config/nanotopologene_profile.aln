@@ -1,0 +1,88 @@
+[header]
+document_type: configuration
+title: "Nanotopologene Profile - Node Configuration"
+scope: "Defines node capabilities, topology, and compliance level"
+
+[node_identity]
+node_id: "node_001"
+profile_version: "1.0"
+profile_type: "solo_development"
+created_at: 1732723200
+
+[capabilities]
+ops_threshold_TOPS: 1000
+max_block_size_bytes: 2097152
+max_tx_per_block: 1000
+max_mempool_size: 10000
+supports_governance: true
+supports_migration: true
+supports_smart_contracts: false
+
+[topology_matrix]
+description: "3x3 identity matrix for solo node (no peers)"
+matrix: [[1,0,0],[0,1,0],[0,0,1]]
+
+[compliance]
+compliance_level: "surgical_grade"
+ai_firmware_version: "ALN.QPU.Math+"
+kyc_enabled: false
+rate_limiting: true
+audit_logging: true
+
+[network]
+p2p_enabled: false
+p2p_port: 26656
+rpc_enabled: true
+rpc_port: 26657
+api_enabled: true
+api_port: 3000
+ws_enabled: true
+ws_port: 3001
+
+[consensus]
+consensus_mode: "solo"
+block_time_ms: 5000
+min_gas_price: 1
+max_gas_per_block: 10000000
+
+[storage]
+db_backend: "leveldb"
+data_dir: "./data"
+state_dir: "./data/state"
+blocks_dir: "./data/blocks"
+
+[security]
+signature_algorithm: "ed25519"
+hash_algorithm: "sha256"
+address_prefix: "aln1"
+require_signatures: true
+
+[qpu_math_plus]
+enable_conservation_checks: true
+enable_limit_checks: true
+enable_signature_verification: true
+max_amount_per_tx: "1000000000000000000000000"
+max_daily_limit: "10000000000000000000000"
+
+[governance_parameters]
+min_proposal_duration_blocks: 1000
+max_proposal_duration_blocks: 100000
+min_quorum: 0.1
+min_threshold: 0.5
+proposal_deposit: "1000000000000000000"
+
+[migration_parameters]
+supported_source_chains: ["canto"]
+bridge_validator_count: 1
+proof_verification_required: true
+escrow_confirmation_blocks: 6
+
+[logging]
+log_level: "INFO"
+structured_logging: true
+log_file: "./logs/aln_node.log"
+max_log_size_mb: 100
+
+[footer]
+validation_status: "VALID"
+last_updated: 1732723200

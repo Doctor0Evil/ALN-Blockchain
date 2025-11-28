@@ -1,0 +1,132 @@
+[header]
+aln_version: 1.0
+document_type: specification
+title: "ALN Syntax Baseline - Chainlexeme Format"
+scope: "Defines canonical structure for all ALN blockchain transactions"
+
+[primitives]
+u64: "Unsigned 64-bit integer"
+u256: "Unsigned 256-bit integer (for large amounts)"
+addr: "ALN address (bech32 format: aln1...)"
+bytes: "Arbitrary byte array (hex-encoded)"
+bool: "Boolean true/false"
+string: "UTF-8 string (max 1024 chars)"
+
+[chainlexeme_structure]
+required_sections: ["header", "data", "footer"]
+header_fields: ["op_code", "from", "to", "nonce"]
+data_fields: ["varies by op_code"]
+footer_fields: ["signature", "timestamp", "gas_limit", "gas_price"]
+
+[op_codes]
+transfer: "Transfer native ALN tokens"
+governance_proposal: "Submit DAO proposal"
+governance_vote: "Cast vote on proposal"
+migration_lock: "Lock assets for cross-chain migration"
+migration_mint: "Mint bridged assets"
+migration_burn: "Burn assets for reverse migration"
+token_mint: "Mint CHATAI tokens (restricted)"
+token_transfer: "Transfer CHATAI tokens"
+delegation: "Delegate voting power"
+
+[constraints]
+max_chainlexeme_size: 16384
+max_constraints_per_tx: 10
+signature_algorithm: "ed25519"
+address_prefix: "aln1"
+
+[examples]
+
+# Example 1: Value Transfer
+example_1_title: "Simple ALN Token Transfer"
+example_1_content: |
+  [header]
+  op_code: transfer
+  from: aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e
+  to: aln1qy8rumpzxplv4n6w5c3kxqzr9dn2vq9z4mhqje
+  nonce: 42
+
+  [data]
+  asset: ALN
+  amount: 1000000
+  memo: "Payment for services"
+  constraints: ["rate_limit_daily", "compliance_kyc"]
+
+  [footer]
+  signature: ed25519:0x3a8f7b2c1d9e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a
+  timestamp: 1732723200
+  gas_limit: 21000
+  gas_price: 100
+
+# Example 2: Governance Proposal
+example_2_title: "DAO Parameter Change Proposal"
+example_2_content: |
+  [header]
+  op_code: governance_proposal
+  from: aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e
+  to: aln1governance000000000000000000000000000
+  nonce: 15
+
+  [data]
+  proposal_id: gov_001
+  title: "Increase Block Gas Limit"
+  category: parameter_change
+  execution_route: core.config.setGasLimit
+  current_value: 10000000
+  proposed_value: 15000000
+  quorum: 0.4
+  threshold: 0.66
+  duration_blocks: 10000
+  description: "Increase block gas limit to support higher throughput"
+  constraints: ["min_stake_requirement"]
+
+  [footer]
+  signature: ed25519:0x9f8e7d6c5b4a39281726150493827160594837261504938271605948372615049
+  timestamp: 1732723200
+  gas_limit: 500000
+  gas_price: 200
+
+# Example 3: Cross-Chain Migration
+example_3_title: "Canto to ALN Migration Event"
+example_3_content: |
+  [header]
+  op_code: migration_mint
+  from: aln1bridge00000000000000000000000000000000
+  to: aln1qy8rumpzxplv4n6w5c3kxqzr9dn2vq9z4mhqje
+  nonce: 891
+
+  [data]
+  asset: CANTO_BRIDGED
+  amount: 5000000000000000000
+  source_chain: canto
+  source_tx_hash: 0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b
+  source_block_height: 1234567
+  proof_hash: 0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
+  escrow_address: "canto1escrow000000000000000000000000000"
+  constraints: ["proof_verified", "escrow_confirmed"]
+
+  [footer]
+  signature: ed25519:0x4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a
+  timestamp: 1732723200
+  gas_limit: 100000
+  gas_price: 150
+
+[validation_rules]
+rule_1: "All header fields must be present and properly typed"
+rule_2: "Signature must be valid ed25519 signature of header+data"
+rule_3: "From address must match signature's public key"
+rule_4: "Nonce must be strictly increasing for each from address"
+rule_5: "Timestamp must be within block time tolerance (±5 minutes)"
+rule_6: "All constraint references must exist in constraint registry"
+rule_7: "Gas limit must be sufficient for op_code execution"
+
+[security_considerations]
+replay_protection: "Nonce + chain_id prevents replay attacks"
+signature_verification: "All transactions must have valid ed25519 signature"
+constraint_enforcement: "Constraints checked before state mutation"
+gas_metering: "All operations metered to prevent DoS"
+
+[footer]
+validation_status: "CANONICAL"
+last_updated: 1732723200
+schema_version: "1.0"

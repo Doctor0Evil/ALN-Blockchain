@@ -1,0 +1,14 @@
+{
+  "name": "@aln/explorer",
+  "version": "1.0.0",
+  "description": "ALN blockchain explorer - web UI with charts",
+  "main": "index.html",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "chart.js": "^4.4.0"
+  }
+}

@@ -1,0 +1,140 @@
+[header]
+document_type: specification
+title: "Governogram Schema - DAO Proposal Format"
+scope: "Structured format for all governance proposals on ALN"
+
+[governogram_structure]
+required_sections: ["header", "metadata", "data", "audit", "footer"]
+
+[header_fields]
+proposal_id: "string (unique identifier)"
+title: "string (max 200 chars)"
+proposer: "addr (ALN address)"
+
+[metadata_fields]
+category: "parameter_change | treasury_spend | contract_upgrade | other"
+execution_route: "string (module.function to call if passed)"
+quorum: "float (0.0-1.0, minimum participation)"
+threshold: "float (0.5-1.0, yes/(yes+no) required to pass)"
+duration_blocks: "u64 (voting period length)"
+
+[data_fields]
+description: "string (detailed proposal description)"
+current_value: "optional (for parameter changes)"
+proposed_value: "optional (for parameter changes)"
+execution_data: "bytes (encoded arguments for execution)"
+
+[audit_fields]
+safety_class: "low_risk | medium_risk | high_risk"
+review_notes: "string (audit findings and recommendations)"
+dependencies: "array of strings (other proposals/modules affected)"
+
+[footer_fields]
+created_at: "u64 (Unix timestamp)"
+created_by: "addr (proposer address)"
+
+[proposal_templates]
+
+# Template 1: Parameter Change
+template_1_title: "Parameter Change Proposal"
+template_1_example: |
+  [header]
+  proposal_id: gov_param_001
+  title: "Increase Block Gas Limit"
+  proposer: aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e
+
+  [metadata]
+  category: parameter_change
+  execution_route: core.config.setGasLimit
+  quorum: 0.4
+  threshold: 0.66
+  duration_blocks: 10000
+
+  [data]
+  description: "Proposal to increase the block gas limit from 10M to 15M to support higher throughput."
+  current_value: 10000000
+  proposed_value: 15000000
+  execution_data: 0x0000000000000000000000000000000000000000000000000000000000E4E1C0
+
+  [audit]
+  safety_class: medium_risk
+  review_notes: "Tested on testnet with positive results. May increase block propagation time."
+  dependencies: []
+
+  [footer]
+  created_at: 1732723200
+  created_by: aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e
+
+# Template 2: Treasury Spend
+template_2_title: "Treasury Spend Proposal"
+template_2_example: |
+  [header]
+  proposal_id: gov_treasury_001
+  title: "Fund Development Grant"
+  proposer: aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e
+
+  [metadata]
+  category: treasury_spend
+  execution_route: treasury.transfer
+  quorum: 0.5
+  threshold: 0.75
+  duration_blocks: 15000
+
+  [data]
+  description: "Allocate 100,000 ALN to development team for Q1 2025 roadmap delivery."
+  recipient: aln1dev0000000000000000000000000000000000
+  amount: 100000000000000000000000
+  execution_data: 0x...
+
+  [audit]
+  safety_class: medium_risk
+  review_notes: "Team has delivered previous milestones on time. Escrow mechanism recommended."
+  dependencies: []
+
+  [footer]
+  created_at: 1732723200
+  created_by: aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e
+
+# Template 3: Contract Upgrade
+template_3_title: "Contract Upgrade Proposal"
+template_3_example: |
+  [header]
+  proposal_id: gov_upgrade_001
+  title: "Upgrade Migration Bridge Contract"
+  proposer: aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e
+
+  [metadata]
+  category: contract_upgrade
+  execution_route: migration.upgradeContract
+  quorum: 0.6
+  threshold: 0.8
+  duration_blocks: 20000
+
+  [data]
+  description: "Upgrade migration bridge to v2 with improved proof verification and multi-chain support."
+  current_version: "1.0.0"
+  proposed_version: "2.0.0"
+  code_hash: 0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b
+  execution_data: 0x...
+
+  [audit]
+  safety_class: high_risk
+  review_notes: "Extensive security audit completed by CertiK. All findings addressed."
+  dependencies: ["migration", "bridge_validators"]
+
+  [footer]
+  created_at: 1732723200
+  created_by: aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e
+
+[validation_rules]
+rule_1: "proposal_id must be unique"
+rule_2: "quorum must be between 0.1 and 1.0"
+rule_3: "threshold must be between 0.5 and 1.0"
+rule_4: "duration_blocks must be between 1000 and 100000"
+rule_5: "proposer must have minimum CHATAI balance"
+rule_6: "execution_route must exist in module registry"
+
+[footer]
+validation_status: "CANONICAL"
+schema_version: "1.0"
+last_updated: 1732723200

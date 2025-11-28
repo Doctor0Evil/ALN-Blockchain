@@ -1,0 +1,9 @@
+{
+  "name": "@aln/dao",
+  "version": "1.0.0",
+  "description": "ALN DAO governance with CHATAI token",
+  "main": "runtime/governance_store.js",
+  "scripts": {
+    "test": "echo \"No tests yet\""
+  }
+}
