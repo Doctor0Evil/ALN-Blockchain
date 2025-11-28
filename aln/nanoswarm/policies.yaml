@@ -1,0 +1,273 @@
+# Nanoswarm Safety Policies
+
+## Policy Framework
+
+All nanoswarm deployments on the ALN blockchain are subject to these safety policies, enforced at the protocol level.
+
+## Core Policy Requirements
+
+### 1. Jurisdictional Compliance
+
+Every nanoswarm deployment MUST:
+- Declare all applicable jurisdictions (min 1, max 10)
+- Map to at least one regulatory regime (FDA, EMA, etc.)
+- Encode jurisdiction metadata in policy fields
+- Pass jurisdiction-specific validation before commit
+
+### 2. Biohazard Classification
+
+Biohazard classes determine where and how swarms can operate:
+
+| Class | Risk Level | Allowed Zones | Containment |
+|-------|-----------|---------------|-------------|
+| **Class 1** | Minimal | All authorized zones | Standard precautions |
+| **Class 2** | Moderate | Controlled environments only | Engineering controls |
+| **Class 3** | High | Full containment required | Sealed systems |
+| **Class 4** | Maximum | Restricted access only | Maximum biosafety |
+
+### 3. Material Restrictions
+
+#### Prohibited Materials (Global)
+- Heavy metals: Mercury, Lead, Cadmium compounds
+- Radioactive isotopes (without special licensing)
+- Known carcinogens (IARC Group 1)
+- Persistent organic pollutants (POPs)
+- Materials with CAS numbers on restricted lists
+
+#### Restricted Materials (Jurisdiction-Dependent)
+- Nanoscale silver (restricted in EU under Biocidal Products Regulation)
+- Carbon nanotubes (requires respiratory protection)
+- Quantum dots containing Cd/Se (medical use only)
+
+#### Approved Materials (Example Whitelist)
+- Medical-grade titanium nanoparticles
+- Gold nanoparticles (biocompatible)
+- Lipid-based nanocarriers
+- Chitosan nanoparticles
+- FDA-approved drug delivery systems
+
+### 4. Density and Concentration Limits
+
+| Zone Type | Max Density (PPM) | Max Concentration (mg/L) |
+|-----------|------------------|------------------------|
+| **Medical Facility** | 1000 | 10 |
+| **Industrial Site** | 5000 | 50 |
+| **Research Lab** | 10000 | 100 |
+| **Residential** | 10 | 0.1 |
+| **Public Space** | 1 | 0.01 |
+
+**Enforcement**: ALN runtime REJECTS any deployment exceeding these limits.
+
+### 5. Telemetry Requirements
+
+All Class 2+ swarms MUST provide real-time telemetry:
+- **Position tracking**: GPS or facility-relative coordinates
+- **Swarm density**: Particles per cubic meter
+- **Activity status**: Active, dormant, deactivated
+- **Health monitoring**: For medical swarms, patient vitals integration
+- **Environmental sensors**: Temperature, pH, toxicity markers
+
+**Telemetry interval**: Max 60 seconds between updates  
+**Failure action**: Auto-deactivation if telemetry drops for >5 minutes
+
+### 6. Kill Switch Mechanism
+
+Required for ALL nanoswarm deployments:
+- **Activation method**: Remote command or predefined trigger
+- **Response time**: <10 seconds to begin deactivation
+- **Redundancy**: Dual-path kill switch (wireless + chemical)
+- **Verification**: Telemetry confirms deactivation within 60 seconds
+- **Fail-safe mode**: If unresponsive, swarm auto-deactivates after max_lifetime_hours
+
+### 7. Authorization Levels
+
+| Override Level | Who Can Authorize | Use Cases |
+|---------------|-------------------|-----------|
+| **Standard** | Certified operator | Routine operations |
+| **Elevated** | Facility supervisor | Non-standard parameters |
+| **Restricted** | Executive + safety officer | High-risk deployments |
+| **Emergency Only** | On-duty medical director | Life-threatening situations |
+
+**Dual human approval**: Required for Class 3+ or Residential/Public zones
+
+### 8. Temporal Constraints
+
+All swarms have mandatory lifetime limits:
+- **Default max lifetime**: 72 hours
+- **Extended lifetime**: Requires Elevated authorization
+- **Absolute maximum**: 7 days (hard limit, no exceptions)
+- **Auto-deactivation**: Enforced by ALN smart contract
+
+**Replication limits**:
+- Medical swarms: Max 10 replication cycles
+- Industrial swarms: Max 100 cycles
+- Research swarms: Max 1000 cycles (contained lab only)
+
+## Safety Pipeline
+
+Every nanoswarm transaction passes through this pipeline:
+
+```
+┌─────────────────────┐
+│ Deployment Request  │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Jurisdiction Check  │ → Validates: jurisdiction tags present and recognized
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Material Validation │ → Validates: all materials on approved list for jurisdiction
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Density Limits      │ → Validates: density within zone limits
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Zone Authorization  │ → Validates: deployment zone matches biohazard class
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Telemetry Config    │ → Validates: telemetry enabled and endpoints configured
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Approval Verify     │ → Validates: required authorizations present and current
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Risk Score Calc     │ → Calculates: overall risk (0-100)
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Policy Decision     │ → APPROVE or REJECT with violations list
+└─────────────────────┘
+```
+
+## Fail-Closed Philosophy
+
+**ALN nanoswarm policy fails CLOSED on any unknown flag:**
+- Unknown material → REJECT
+- Unrecognized jurisdiction → REJECT
+- Missing telemetry config → REJECT
+- Expired certification → REJECT
+- Insufficient authorization → REJECT
+
+**Privacy vs. Safety**: Even in stealth/privacy mode, swarms MUST emit audit-grade logs and hashes for lawful traceability.
+
+## Example Policy Enforcement
+
+### Case 1: Medical Nanobot Deployment
+
+```typescript
+const request = {
+  deployment_id: "NANO-MED-2025-001",
+  operator_id: "dr_jane_smith_md",
+  facility_id: "hospital_stanford_ca",
+  safety_profile: {
+    jurisdictions: ["US_federal", "US_state_CA"],
+    biohazard_class: BiohazardClass.CLASS_2_CONTROLLED,
+    allowed_materials: ["gold_nanoparticles_10nm", "lipid_carrier_doxil"],
+    max_density_ppm: 500,
+    deployment_zone_type: ZoneType.MEDICAL_FACILITY,
+    telemetry_required: true,
+    kill_switch_required: true,
+    override_level: OverrideLevel.STANDARD,
+    dual_human_approval: false,
+    max_lifetime_hours: 24,
+    max_replication_cycles: 5
+  },
+  // ... chat context, certifications, etc.
+};
+
+// ALN validation result:
+// ✅ Jurisdictions valid (US_federal + CA)
+// ✅ Materials approved (gold nanoparticles + Doxil are FDA-approved)
+// ✅ Density within limits (500 < 1000 for medical facility)
+// ✅ Zone authorized (medical facility + Class 2 allowed)
+// ✅ Telemetry configured
+// ✅ Standard authorization sufficient
+// ✅ Lifetime within limits
+// → APPROVED
+```
+
+### Case 2: Residential Deployment (REJECTED)
+
+```typescript
+const request = {
+  deployment_id: "NANO-HOME-2025-002",
+  safety_profile: {
+    jurisdictions: ["US_federal"],
+    biohazard_class: BiohazardClass.CLASS_1_MINIMAL,
+    max_density_ppm: 50, // EXCEEDS residential limit of 10
+    deployment_zone_type: ZoneType.RESIDENTIAL,
+    override_level: OverrideLevel.STANDARD, // INSUFFICIENT for residential
+    dual_human_approval: false // REQUIRED for residential
+  }
+};
+
+// ALN validation result:
+// ❌ Density exceeds limit (50 > 10 for residential)
+// ❌ Authorization insufficient (needs RESTRICTED for residential)
+// ❌ Dual approval missing (required for residential zones)
+// → REJECTED with violations:
+//    - NANO_ERR_DENSITY_EXCEEDED
+//    - NANO_ERR_INSUFFICIENT_AUTHORIZATION
+//    - NANO_ERR_DUAL_APPROVAL_REQUIRED
+```
+
+## Audit and Compliance
+
+Every nanoswarm deployment generates immutable audit trail:
+
+```typescript
+interface NanoswarmAuditLog {
+  transaction_hash: string;
+  deployment_id: string;
+  operator_id: string;
+  facility_id: string;
+  
+  // Safety validation results
+  safety_checks_passed: string[];
+  violations: SafetyViolation[];
+  
+  // Chat context (for explainability)
+  chat_context_id: string;
+  transcript_hash: string;
+  
+  // Regulatory
+  jurisdictions: string[];
+  regulatory_approvals: string[];
+  
+  // Risk assessment
+  risk_score: number;
+  authorization_level: OverrideLevel;
+  
+  // Lifecycle events
+  deployed_at: Date;
+  last_telemetry: Date;
+  deactivated_at?: Date;
+  kill_switch_activated?: boolean;
+  
+  // Compliance metadata
+  policy_version: string;
+  audit_retention_until: Date;
+}
+```
+
+**Retention**: Minimum 10 years for medical swarms, 7 years for others
+
+---
+
+**Version**: 1.0  
+**Last Updated**: November 27, 2025  
+**Compliance**: FDA 21 CFR 820, EU MDR 2017/745, ISO 13485

@@ -1,0 +1,40 @@
+aln_module "personal_energy_state" {
+  version: "1.0"
+  description: "Track augmented user energy usage and device budgets"
+
+  // Data structure
+  type AugmentedEnergyState {
+    user: string,
+    cognitive_level: uint8,    // 0-100
+    physical_level: uint8,     // 0-100
+    grid_power_draw_watts: uint32,
+    device_ids: string[],
+    last_update_block: uint64
+  }
+
+  type PersonalEnergyPolicy {
+    user: string,
+    max_grid_draw_watts: uint32,
+    max_device_count: uint8,
+    alert_threshold_watts: uint32
+  }
+
+  // State updates
+  function updateEnergyState(user, cognitive, physical, grid_draw, devices) {
+    // Validate user policy constraints
+    // Update on-chain state (privacy-preserving: hashes only)
+    // Emit audit event if thresholds exceeded
+  }
+
+  // Policy checks
+  function checkEnergyBudget(user, proposed_draw) -> bool {
+    // Fetch policy and current state
+    // Return true if proposed_draw + current < max_grid_draw_watts
+  }
+
+  // Fairness constraints
+  function calculateAllocation(requests[]) -> Allocation[] {
+    // Fairness algorithm: no single user exceeds X% of total grid
+    // Enforce fraud reversal path for detected anomalies
+  }
+}

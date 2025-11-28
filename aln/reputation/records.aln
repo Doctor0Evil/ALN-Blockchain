@@ -1,0 +1,58 @@
+aln_module "reputation_records" {
+  version: "1.0"
+  description: "Non-transferable reputation records linked to DIDs"
+
+  // Core data structure
+  type GoodDeedRecord {
+    user: string,           // DID or wallet
+    deed_type: string,      // ASSISTED_EMS, REPORTED_INCIDENT, LAWFUL_EVIDENCE_SUPPORT
+    verifying_authority: string,  // Hash or DID of authority
+    timestamp: uint64,
+    jurisdiction: string,
+    evidence_refs: string[]
+  }
+
+  type AugmentedReputation {
+    user: string,
+    positive_events_count: uint64,
+    negative_events_count: uint64,
+    law_enf_assist_events: uint64,
+    last_review_block: uint64,
+    computed_score: uint8  // 0-100
+  }
+
+  // Issuance and revocation
+  function issueGoodDeedRecord(user, deed_type, authority, jurisdiction) -> RecordID {
+    // Validate authority credential
+    // Create non-transferable record
+    // Emit audit event
+    // Update reputation score
+  }
+
+  function revokeRecord(record_id, reason, authority) {
+    // Validate authority
+    // Mark record as revoked
+    // Adjust reputation score
+    // Emit audit event with reason
+  }
+
+  // Appeals and transparency
+  function appealRecord(record_id, user, appeal_reason) -> AppealID {
+    // Create appeal entry
+    // Notify review authority
+    // Set appeal_status: PENDING
+  }
+
+  function resolveAppeal(appeal_id, decision, authority) {
+    // Update appeal_status: APPROVED | DENIED
+    // Adjust reputation if approved
+    // Emit transparency event
+  }
+
+  // Reputation computation
+  function computeReputation(user) -> uint8 {
+    // Formula: weighted sum of positive/negative events
+    // e.g., score = min(100, positive*10 - negative*20)
+    // Ensure human-rights constraints: cannot drop below safe baseline
+  }
+}

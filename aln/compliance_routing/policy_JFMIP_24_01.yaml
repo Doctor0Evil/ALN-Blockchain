@@ -1,0 +1,36 @@
+policy:
+  id: JFMIP-24-01
+  title: Federal Financial Management Improvement – Token Controls
+  scope:
+    - token_deploy
+    - token_update
+    - token_mint
+  requirements:
+    naming:
+      prohibit_impersonation: true
+      prohibited_terms:
+        - "US Treasury"
+        - "Federal Reserve"
+        - "SEC"
+        - "IRS"
+    economics:
+      require_prepaid_fee_in_ALN: true
+      prohibit_dynamic_mint_without_cap: true
+      require_transparency_disclosures: true
+    code_patterns:
+      block_honeypot_balance_lock: true
+      block_self_destruct_drainers: true
+      block_privileged_admin_backdoors: true
+    audit:
+      require_transcript_hash_if_chat_origin: true
+      require_onchain_audit_event: true
+  enforcement:
+    actions:
+      - type: reject
+        when: ["prohibit_impersonation", "block_privileged_admin_backdoors"]
+      - type: auto_refactor
+        when: ["block_honeypot_balance_lock", "block_self_destruct_drainers"]
+      - type: require_fee
+        when: ["require_prepaid_fee_in_ALN"]
+      - type: require_disclosures
+        when: ["require_transparency_disclosures"]

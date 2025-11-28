@@ -1,0 +1,223 @@
+# Nanoswarm Safety Interfaces
+
+## Overview
+
+This module defines the type interfaces and safety profiles for nanoswarm deployments on the ALN blockchain. All nanoswarm operations MUST satisfy these safety constraints before execution.
+
+## NanoswarmSafetyProfile
+
+```typescript
+interface NanoswarmSafetyProfile {
+  // Jurisdictional compliance
+  jurisdictions: string[];           // List of applicable regulatory jurisdictions
+  
+  // Biohazard classification
+  biohazard_class: BiohazardClass;   // Classification level (1-4)
+  
+  // Material restrictions
+  allowed_materials: string[];        // Whitelist of permitted materials
+  prohibited_materials: string[];     // Blacklist of banned materials
+  
+  // Density and concentration limits
+  max_density_ppm: number;           // Maximum particles per million (PPM)
+  max_concentration_mg_l: number;    // Maximum concentration (mg/L)
+  
+  // Operational constraints
+  deployment_zone_type: ZoneType;    // Where swarm can operate
+  telemetry_required: boolean;       // Real-time monitoring mandatory
+  kill_switch_required: boolean;     // Emergency shutdown mechanism
+  
+  // Authorization and oversight
+  override_level: OverrideLevel;     // Required authorization level
+  dual_human_approval: boolean;      // Requires two human operators
+  
+  // Temporal constraints
+  max_lifetime_hours: number;        // Swarm auto-deactivation time
+  max_replication_cycles: number;    // Replication limit
+}
+
+enum BiohazardClass {
+  CLASS_1_MINIMAL = 'class_1_minimal',         // Minimal risk, standard precautions
+  CLASS_2_CONTROLLED = 'class_2_controlled',   // Controlled environment only
+  CLASS_3_CONTAINED = 'class_3_contained',     // Full containment required
+  CLASS_4_RESTRICTED = 'class_4_restricted'    // Maximum biosafety, restricted access
+}
+
+enum ZoneType {
+  MEDICAL_FACILITY = 'medical_facility',       // Hospital, clinic, lab
+  INDUSTRIAL_SITE = 'industrial_site',         // Factory, warehouse
+  RESEARCH_LAB = 'research_lab',               // Academic or private research
+  RESIDENTIAL = 'residential',                 // Homes, apartments (highly restricted)
+  PUBLIC_SPACE = 'public_space',               // Streets, parks (generally prohibited)
+  CONTAINED_ENVIRONMENT = 'contained_environment' // Sealed chamber
+}
+
+enum OverrideLevel {
+  STANDARD = 'standard',           // Normal operations
+  ELEVATED = 'elevated',           // Supervisor approval required
+  RESTRICTED = 'restricted',       // Executive approval required
+  EMERGENCY_ONLY = 'emergency_only' // Life-safety situations only
+}
+```
+
+## NanoswarmDeploymentRequest
+
+```typescript
+interface NanoswarmDeploymentRequest {
+  // Identification
+  deployment_id: string;
+  operator_id: string;
+  facility_id: string;
+  
+  // Safety profile
+  safety_profile: NanoswarmSafetyProfile;
+  
+  // Chat-native metadata (required for audit)
+  chat_context_id: string;
+  transcript_hash: string;
+  
+  // Swarm specifications
+  swarm_type: string;              // e.g., "medical_nanobots", "industrial_cleaners"
+  target_material: string;         // What the swarm acts upon
+  swarm_size: number;              // Number of individual units
+  
+  // Temporal parameters
+  scheduled_start: Date;
+  scheduled_end: Date;
+  
+  // Safety certifications
+  certifications: Certification[];
+  regulatory_approvals: RegulatoryApproval[];
+}
+
+interface Certification {
+  issuer: string;                  // Certifying body (e.g., "FDA", "EMA")
+  certificate_id: string;
+  issue_date: Date;
+  expiry_date: Date;
+  scope: string;                   // What the cert covers
+}
+
+interface RegulatoryApproval {
+  jurisdiction: string;            // e.g., "US_federal", "EU"
+  approval_id: string;
+  granted_by: string;              // Regulatory agency
+  granted_date: Date;
+  conditions: string[];            // Approval conditions
+}
+```
+
+## Safety Check Result
+
+```typescript
+interface NanoswarmSafetyCheckResult {
+  approved: boolean;
+  deployment_id: string;
+  
+  // Checks performed
+  checks: {
+    jurisdiction_valid: boolean;
+    biohazard_compliant: boolean;
+    materials_allowed: boolean;
+    density_within_limits: boolean;
+    zone_authorized: boolean;
+    telemetry_configured: boolean;
+    approvals_verified: boolean;
+  };
+  
+  // Violations (if any)
+  violations: SafetyViolation[];
+  
+  // Authorization
+  authorized_by: string[];         // Operator IDs who approved
+  authorization_level: OverrideLevel;
+  
+  // Audit
+  checked_at: Date;
+  policy_version: string;
+}
+
+interface SafetyViolation {
+  code: string;                    // e.g., "NANO_ERR_DENSITY_EXCEEDED"
+  severity: 'info' | 'warning' | 'critical' | 'fatal';
+  field: string;                   // Which field violated
+  message: string;                 // Human-readable explanation
+  remediation: string;             // How to fix it
+}
+```
+
+## Material Database Integration
+
+```typescript
+interface NanoMaterial {
+  material_id: string;
+  common_name: string;
+  chemical_formula: string;
+  cas_number: string;              // Chemical Abstracts Service number
+  
+  // Regulatory status
+  approved_jurisdictions: string[];
+  prohibited_jurisdictions: string[];
+  restricted_use_cases: string[];
+  
+  // Safety data
+  toxicity_level: number;          // 0-10 scale
+  environmental_impact: number;    // 0-10 scale
+  bioaccumulation_risk: boolean;
+  
+  // Handling requirements
+  max_safe_concentration: number;
+  required_ppe: string[];          // Personal protective equipment
+  storage_requirements: string[];
+}
+```
+
+## Policy Validation
+
+```typescript
+interface NanoswarmPolicyValidator {
+  /**
+   * Validate a nanoswarm deployment request against all applicable policies
+   */
+  validateDeployment(request: NanoswarmDeploymentRequest): Promise<NanoswarmSafetyCheckResult>;
+  
+  /**
+   * Check if material is allowed in given jurisdiction
+   */
+  isMaterialAllowed(material: string, jurisdiction: string): Promise<boolean>;
+  
+  /**
+   * Verify regulatory approvals are current and valid
+   */
+  verifyApprovals(approvals: RegulatoryApproval[]): Promise<boolean>;
+  
+  /**
+   * Calculate risk score for deployment (0-100)
+   */
+  calculateRiskScore(request: NanoswarmDeploymentRequest): Promise<number>;
+}
+```
+
+## Export Types
+
+```typescript
+export {
+  NanoswarmSafetyProfile,
+  BiohazardClass,
+  ZoneType,
+  OverrideLevel,
+  NanoswarmDeploymentRequest,
+  Certification,
+  RegulatoryApproval,
+  NanoswarmSafetyCheckResult,
+  SafetyViolation,
+  NanoMaterial,
+  NanoswarmPolicyValidator
+};
+```
+
+---
+
+**Version**: 1.0  
+**Last Updated**: November 27, 2025  
+**Compliance**: FDA 21 CFR Part 58, EU Directive 2009/41/EC, ISO 14644

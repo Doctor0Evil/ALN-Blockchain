@@ -135,6 +135,17 @@ class StateStore {
         return result;
       }
 
+      // Capture chat-native metadata (optional)
+      const chatMeta = {
+        chat_context_id: header.chat_context_id || null,
+        transcript_hash: header.transcript_hash || null,
+        jurisdiction_tags: Array.isArray(header.jurisdiction_tags) ? header.jurisdiction_tags : null
+      };
+
+      if (chatMeta.chat_context_id || chatMeta.transcript_hash) {
+        result.state_changes.push({ type: 'chat_metadata', meta: chatMeta });
+      }
+
       // Handle different operation types
       switch (header.op_code) {
         case 'transfer':
@@ -163,12 +174,37 @@ class StateStore {
       await this.setAccount(header.from, fromAccount);
       result.state_changes.push({ type: 'nonce_increment', address: header.from });
 
+      // Persist lightweight audit record if chat metadata present
+      if (chatMeta.chat_context_id || chatMeta.transcript_hash) {
+        await this._appendAuditRecord({
+          tx_from: header.from,
+          tx_to: header.to,
+          op_code: header.op_code,
+          chat_context_id: chatMeta.chat_context_id,
+            transcript_hash: chatMeta.transcript_hash,
+          jurisdiction_tags: chatMeta.jurisdiction_tags,
+          timestamp: footer.timestamp || Math.floor(Date.now() / 1000)
+        });
+      }
+
       result.success = true;
       return result;
 
     } catch (err) {
       result.error = err.message;
       return result;
+    }
+  }
+
+  /**
+   * Append audit record for chat-native enriched transactions
+   */
+  async _appendAuditRecord(record) {
+    const key = `audit:${record.tx_from}:${record.timestamp}:${record.op_code}`;
+    try {
+      await this.db.put(key, record);
+    } catch (err) {
+      // Swallow audit write errors to avoid impacting consensus path
     }
   }
 

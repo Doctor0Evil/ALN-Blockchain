@@ -15,7 +15,7 @@
  * @returns {Object} Unsigned chainlexeme
  */
 function buildTransferTx(fromAddr, toAddr, amount, nonce, fee = 100) {
-  return {
+  const tx = {
     header: {
       op_code: 'transfer',
       from: fromAddr,
@@ -34,6 +34,7 @@ function buildTransferTx(fromAddr, toAddr, amount, nonce, fee = 100) {
       gas_price: fee
     }
   };
+  return tx;
 }
 
 /**
@@ -79,7 +80,7 @@ function buildGovernanceProposalTx(proposer, proposalData) {
  * @returns {Object} Unsigned chainlexeme
  */
 function buildGovernanceVoteTx(voter, proposalId, support, nonce) {
-  return {
+  const tx = {
     header: {
       op_code: 'governance_vote',
       from: voter,
@@ -97,6 +98,23 @@ function buildGovernanceVoteTx(voter, proposalId, support, nonce) {
       gas_price: 150
     }
   };
+  return tx;
+}
+
+/**
+ * Attach chat-native metadata to any unsigned transaction
+ * @param {Object} tx - chainlexeme transaction object
+ * @param {Object} meta - { chat_context_id, transcript_hash, jurisdiction_tags }
+ * @returns {Object} augmented transaction
+ */
+function withChatMetadata(tx, meta = {}) {
+  if (!tx || !tx.header) return tx;
+  if (meta.chat_context_id) tx.header.chat_context_id = meta.chat_context_id;
+  if (meta.transcript_hash) tx.header.transcript_hash = meta.transcript_hash;
+  if (meta.jurisdiction_tags && Array.isArray(meta.jurisdiction_tags)) {
+    tx.header.jurisdiction_tags = meta.jurisdiction_tags;
+  }
+  return tx;
 }
 
 /**
@@ -174,6 +192,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildTransferTx,
     buildGovernanceProposalTx,
     buildGovernanceVoteTx,
+    withChatMetadata,
     signTx,
     generateKeypairFromSeed,
     verifyTxSignature

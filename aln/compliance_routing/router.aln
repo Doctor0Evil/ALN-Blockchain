@@ -1,0 +1,34 @@
+aln_module "compliance_routing" {
+  version: "1.0"
+  description: "Route transactions and contracts through jurisdictional compliance policies"
+
+  // Map op_codes to required jurisdiction tags and policies
+  routes: [
+    { op_code: "token_deploy", required_tags: ["JFMIP"], policy: "JFMIP-24-01" },
+    { op_code: "migration_ingest", required_tags: ["JFMIP", "GDPR"], policy: "MIGRATION_SEC" },
+    { op_code: "governance_vote", required_tags: [], policy: "GOV_MIN" },
+    { op_code: "transfer", required_tags: [], policy: "BASIC_TX" }
+  ]
+
+  // Validation stub
+  function validate(tx) -> ValidationReport {
+    let report = ValidationReport(valid=true);
+    let route = routes.find(r => r.op_code == tx.header.op_code);
+    if (!route) {
+      report.valid = false;
+      report.errors.push("No compliance route for op_code");
+      return report;
+    }
+
+    // Jurisdiction tag enforcement
+    for (tag in route.required_tags) {
+      if (!tx.header.jurisdiction_tags || !tx.header.jurisdiction_tags.includes(tag)) {
+        report.valid = false;
+        report.errors.push("Missing jurisdiction tag: " + tag);
+      }
+    }
+
+    report.metadata.policy = route.policy;
+    return report;
+  }
+}

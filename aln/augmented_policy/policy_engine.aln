@@ -1,0 +1,66 @@
+aln_module "augmented_user_policy_engine" {
+  version: "1.0"
+  description: "On-chain policy checks for augmented user capabilities"
+
+  // Data types
+  type AugmentedUserProfile {
+    user_did: string,
+    linked_wallets: string[],
+    augmentation_ids: string[],
+    jurisdiction_tags: string[],
+    compliance_mode: ComplianceMode  // NORMAL, RESTRICTED, LAW_ENFORCEMENT_COOP
+  }
+
+  type AugmentedUserPolicy {
+    user: string,
+    max_grid_draw_watts: uint32,
+    max_device_class_permitted: string[],
+    allowed_capability_levels: CapabilityLevel[],
+    audit_required: bool,
+    jurisdiction_constraints: string[]
+  }
+
+  enum ComplianceMode {
+    NORMAL,
+    RESTRICTED,
+    LAW_ENFORCEMENT_COOP
+  }
+
+  enum CapabilityLevel {
+    BASIC,
+    ADVANCED,
+    LAW_ENF_ASSIST
+  }
+
+  // Registry of augmentation actions
+  action_registry: [
+    { id: "ENHANCED_VISION", capability_level: "ADVANCED" },
+    { id: "RAPID_MOBILITY", capability_level: "ADVANCED" },
+    { id: "SECURE_COMMS", capability_level: "LAW_ENF_ASSIST" },
+    { id: "DATA_ACCESS_LEVEL_X", capability_level: "LAW_ENF_ASSIST" }
+  ]
+
+  // Policy checks
+  function getEffectivePolicy(user) -> AugmentedUserPolicy {
+    // Fetch user policy from state
+    // Apply jurisdiction-specific overlays
+    // Return effective policy
+  }
+
+  function isActionAllowed(user, action_id, energy_state) -> (bool, string) {
+    // 1. Fetch action requirements from registry
+    // 2. Fetch user policy and reputation
+    // 3. Check capability level authorization
+    // 4. Check energy budget constraints
+    // 5. Return (allowed, reason_if_denied)
+  }
+
+  function requireLawEnfModeFor(action_id) -> bool {
+    // Return true if action requires LAW_ENFORCEMENT_COOP mode
+  }
+
+  // Audit events
+  function emitActionAudit(user, action_id, allowed, energy_before, energy_after, policy_version) {
+    // Emit on-chain event with timestamp, jurisdiction, reason
+  }
+}

@@ -1,0 +1,51 @@
+aln_module "neuromorphic_adapter_sandbox" {
+  version: "1.0"
+  description: "Sandbox bridge for neuromorphic/organic computing systems with consent and restricted write paths"
+
+  // Adapter channels (opt-in only)
+  channels: [
+    "read_telemetry",
+    "propose_energy_adjustment",
+    "submit_governance_suggestion"
+  ]
+
+  // Safety policy
+  safety_constraints: {
+    no_direct_state_writes: true,
+    require_user_consent: true,
+    max_proposals_per_hour: 10,
+    require_reputation_threshold: 50
+  }
+
+  // Activation
+  function activateAdapter(user, device_id, consent_signature) -> AdapterID {
+    // Validate consent signature
+    // Check reputation threshold
+    // Register adapter in sandbox registry
+    // Return adapter_id
+  }
+
+  // Channel operations
+  function readTelemetry(adapter_id) -> TelemetryData {
+    // Return privacy-preserving summaries (hashes, aggregates)
+    // No raw biometric streams
+  }
+
+  function proposeEnergyAdjustment(adapter_id, proposal) {
+    // Queue proposal for user review
+    // Does NOT directly modify state
+    // Emit event for UE or backend to process
+  }
+
+  function submitGovernanceSuggestion(adapter_id, suggestion) {
+    // Queue governance suggestion
+    // Subject to reputation and rate limits
+    // Emit audit event
+  }
+
+  // Deactivation
+  function deactivateAdapter(adapter_id, user) {
+    // Revoke adapter access
+    // Clear sandbox state
+  }
+}

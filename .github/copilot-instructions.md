@@ -52,3 +52,74 @@ ALN blockchain implementation with:
 - Error codes from `/aln/core/logging/errors.aln`
 - Structured logging with node_id, block_height, tx_hash
 - Rate limiting on public endpoints
+
+## Treasury & Constants
+
+- **Single Source of Truth**: Import `ALN_TREASURY_ADDRESS` and all protocol constants from `/aln/core/config/constants.ts`
+- **NEVER** hard-code treasury addresses, gas limits, governance periods, or TPS targets
+- Use helper functions: `isTreasuryLive()`, `isValidJurisdiction(tag)`, `isValidTreasuryAddress(addr)`
+- Treasury is reserved; `ALN_TREASURY_LIVE = false` until mainnet genesis
+
+## Chat-Native Metadata
+
+- All transactions MAY include optional header fields:
+  - `chat_context_id` (UUID, max 36 chars)
+  - `transcript_hash` (SHA-256 hex, max 64 chars)
+  - `jurisdiction_tags` (array, max 10 tags from `JURISDICTIONS` constant)
+- Parser WARNS if governance/migration ops lack `chat_context_id` or `transcript_hash`
+- State store captures metadata and appends audit records: `audit:<from>:<timestamp>:<op_code>`
+- Use `withChatMetadata(tx, meta)` helper in wallet builder
+
+## Compliance Routing
+
+- All token deployments, migrations, and sensitive ops MUST route through `/aln/compliance_routing/router.aln`
+- Compliance policies (e.g., `JFMIP-24-01`) enforce:
+  - Prepaid ALN fees before deployment
+  - Naming/impersonation checks
+  - Auto-refactoring of unsafe patterns (honeypots, self-destruct drainers)
+  - Audit event emission with transcript hashes
+- Validation reports include `metadata.policy` field indicating applied policy
+
+## Augmented User Policies
+
+- Core data types: `AugmentedUserProfile`, `AugmentedEnergyState`, `AugmentedUserPolicy`
+- On-chain policy engine checks: `isActionAllowed(user, action_id, energy_state)`
+- All augmentation activations in UE MUST call policy check first
+- Emit audit events for allow/deny with energy deltas, timestamps, policy versions
+- Law-Enforcement Assist tier requires: authority credential, consent, reputation threshold, jurisdiction compliance
+- Reputation is non-transferable; derived from `GoodDeedRecord` + violations
+- See `AUGMENTED_POLICY.md`, `AUGMENTED_REPUTATION.md`, `LAW_ENF_ASSIST_GUIDE.md`
+
+## Future-Tech Domain Scaffolding
+
+- Domain folders with policy/type definitions:
+  - `/aln/nanoswarm` – safety classes and swarm policies
+  - `/aln/bci_neuromorphic` – BCI safety levels, compliance routes
+  - `/aln/superintelligence` – capability constraints
+  - `/aln/augmented_city` – node types and governance models
+  - `/aln/compliance_routing` – op_code routing and jurisdiction enforcement
+- Module syntax: `aln_module "name" { }` and `aln_policy "name" { }`
+- Parser extracts module metadata; integrates with QPU.Math+ hooks
+
+## Security & Malware
+
+- Malware domains: ransomware, keyloggers, drainers, phishing, supply_chain, logic_timebomb
+- All contracts/transactions pass through malware detection before commit
+- ML threat hooks: `loadSignatures()`, `scorePayload()`, `updatePolicies()`
+- Quarantine workflow for flagged contracts; cannot deploy until cleared
+
+## Token Creation Pipeline
+
+- Workflow: `submit_token_blueprint` → `analyze_and_refactor` → `review` → `approve_or_reject`
+- Enforce prepaid ALN fee (from constants) before finalization
+- Auto-refactor unsafe patterns; reject impersonation/scam names
+- All token ops require compliance routing validation
+
+## Guardrail Verification
+
+- Run `npm run verify:scaffold` to check:
+  - Presence of core docs (AUGMENTED_POLICY.md, AUGMENTED_REPUTATION.md, LAW_ENF_ASSIST_GUIDE.md)
+  - Single-source constants usage
+  - Compliance routing files
+  - Wallet chat metadata helper
+- CI should run this before merge

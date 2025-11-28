@@ -1,0 +1,41 @@
+aln_module "canto_migration" {
+  version: "1.0"
+  description: "Ingest, analyze, and adapt Canto contracts to ALN with malware/compliance hardening"
+
+  // Ingest Canto contract or state
+  function ingestCantoContract(contract_address, source_chain) -> IngestRecord {
+    // Fetch contract code and state from Canto RPC
+    // Store in staging area
+    // Assign migration_id
+    // Return IngestRecord(migration_id, contract_address, source_chain, timestamp)
+  }
+
+  // Analyze for malware and compliance
+  function analyzeContract(migration_id) -> AnalysisReport {
+    // Run malware.aln detection hooks
+    // Check compliance routing requirements
+    // Identify unsafe patterns from historical Canto exploits
+    // Return AnalysisReport(
+    //   safe: bool,
+    //   vulnerabilities[],
+    //   recommended_adaptations[],
+    //   risk_score
+    // )
+  }
+
+  // Generate ALN-native adapter
+  function generateAdapter(migration_id) -> AdapterCode {
+    // Transform Canto contract to ALN chainlexeme format
+    // Apply auto-refactoring from token_creation pipeline
+    // Preserve functional logic while hardening security
+    // Return AdapterCode(aln_code, transformation_log[])
+  }
+
+  // Deploy adapted contract
+  function deployAdaptedContract(migration_id) {
+    // Validate analysis passed
+    // Deploy adapter to ALN chain
+    // Emit migration_scan_result event for explorer
+    // Update audit log with migration details
+  }
+}

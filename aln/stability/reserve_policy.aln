@@ -1,0 +1,45 @@
+aln_policy "reserve_stability" {
+  version: "1.0"
+  description: "ALN token stability via diversified reserve and anti-front-run circuits"
+
+  // Reserve basket weights (Bitcoin + fiat basket)
+  reserve_composition: {
+    BTC: 0.40,
+    USD_basket: 0.30,
+    EUR_basket: 0.15,
+    JPY_basket: 0.10,
+    GBP_basket: 0.05
+  }
+
+  // Rebalancing parameters
+  rebalancing: {
+    interval_blocks: 17280,  // ~1 day at 5s blocks
+    max_single_trade_percent: 0.05,  // 5% of total reserve per trade
+    twap_window_blocks: 100  // Time-weighted average price window
+  }
+
+  // Anti-front-run guards
+  function commitRebalance(proposal_hash) {
+    // Commit-reveal: hash of rebalance proposal
+    // Must be followed by reveal within N blocks
+  }
+
+  function revealRebalance(proposal, nonce) {
+    // Verify hash matches commit
+    // Execute rebalance trades within TWAP window
+  }
+
+  // Proof-of-reserve publishing
+  function publishProofOfReserve() -> ProofOfReserve {
+    // Generate Merkle tree of reserve assets
+    // Sign with reserve custodian keys
+    // Publish root + signed attestation on-chain
+    // Returns: { merkle_root, signatures[], timestamp, assets[] }
+  }
+
+  // Stability constraints
+  function checkStabilityConstraints(aln_price_usd) -> bool {
+    // Cap volatility: |price - 1.0| < 0.02 (2% max deviation)
+    return abs(aln_price_usd - 1.0) < 0.02;
+  }
+}

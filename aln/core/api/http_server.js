@@ -89,7 +89,7 @@ class HttpServer {
       }
     });
 
-    // POST /tx - Submit transaction
+    // POST /tx - Submit transaction (supports chat-native metadata)
     this.app.post('/tx', async (req, res) => {
       try {
         const chainlexeme = req.body;
@@ -100,6 +100,19 @@ class HttpServer {
           parsed = parseAlnDocument(chainlexeme);
         }
 
+        // Normalize chat-native metadata when provided separately
+        if (parsed && parsed.header) {
+          if (req.body.chat_context_id && !parsed.header.chat_context_id) {
+            parsed.header.chat_context_id = req.body.chat_context_id;
+          }
+          if (req.body.transcript_hash && !parsed.header.transcript_hash) {
+            parsed.header.transcript_hash = req.body.transcript_hash;
+          }
+          if (req.body.jurisdiction_tags && !parsed.header.jurisdiction_tags) {
+            parsed.header.jurisdiction_tags = req.body.jurisdiction_tags;
+          }
+        }
+
         const result = this.consensus.submitTransaction(parsed);
         
         if (result.success) {
@@ -107,7 +120,9 @@ class HttpServer {
             success: true,
             data: {
               txHash: result.txHash,
-              mempoolSize: result.mempoolSize
+              mempoolSize: result.mempoolSize,
+              chat_context_id: parsed.header.chat_context_id || null,
+              transcript_hash: parsed.header.transcript_hash || null
             }
           });
         } else {

@@ -1,0 +1,399 @@
+# BCI & Neuromorphic Compliance Routing
+
+## Overview
+
+This file defines compliance routing rules for BCI devices and neuromorphic systems across multiple jurisdictions.
+
+## Jurisdictional Rules
+
+### United States (FDA Regulations)
+
+```yaml
+jurisdiction: US_federal
+regulatory_body: FDA
+applicable_regulations:
+  - "21 CFR Part 812 (Investigational Device Exemptions)"
+  - "21 CFR Part 820 (Quality System Regulation)"
+  - "21 CFR Part 11 (Electronic Records)"
+
+device_classifications:
+  class_I:
+    risk: minimal
+    examples: ["non-invasive EEG monitors"]
+    requirements:
+      - general_controls
+      - registration
+    
+  class_II:
+    risk: moderate
+    examples: ["EEG neurofeedback devices", "fNIRS monitors"]
+    requirements:
+      - general_controls
+      - special_controls
+      - 510k_clearance
+      - performance_standards
+    
+  class_III:
+    risk: high
+    examples: ["invasive BCI implants", "deep brain stimulators"]
+    requirements:
+      - general_controls
+      - special_controls
+      - premarket_approval_pma
+      - clinical_trials
+      - post_market_surveillance
+
+signal_requirements:
+  write_operations:
+    approval: pma_or_ide_required
+    dual_operator: true
+    monitoring: continuous_telemetry
+    
+  coercive_patterns:
+    enforcement: absolute_block
+    detection: real_time
+    logging: mandatory_with_alert
+
+audit_retention:
+  minimum_days: 90
+  ide_trials: 2555  # 7 years
+  pma_devices: 3650 # 10 years
+```
+
+### European Union (MDR)
+
+```yaml
+jurisdiction: EU
+regulatory_body: Notified Bodies + Competent Authorities
+applicable_regulations:
+  - "MDR 2017/745 (Medical Device Regulation)"
+  - "GDPR 2016/679 (Data Protection)"
+  - "Clinical Trials Regulation 536/2014"
+
+device_classifications:
+  class_I:
+    risk: low
+    examples: ["non-invasive monitoring"]
+    requirements:
+      - ce_marking
+      - declaration_of_conformity
+      
+  class_IIa:
+    risk: medium_low
+    examples: ["short-term invasive devices"]
+    requirements:
+      - ce_marking
+      - notified_body_involvement
+      - technical_documentation
+      
+  class_IIb:
+    risk: medium_high
+    examples: ["active therapeutic devices"]
+    requirements:
+      - ce_marking
+      - notified_body_certification
+      - clinical_evaluation
+      - post_market_surveillance
+      
+  class_III:
+    risk: high
+    examples: ["invasive BCI", "life-sustaining devices"]
+    requirements:
+      - ce_marking
+      - notified_body_certification
+      - clinical_investigation
+      - competent_authority_notification
+      - post_market_surveillance_stringent
+
+gdpr_requirements:
+  data_minimization: true
+  purpose_limitation: true
+  storage_limitation:
+    neural_data_retention_max_days: 2555 # 7 years
+  
+  consent:
+    explicit: true
+    informed: true
+    withdrawable: true
+    
+  data_subject_rights:
+    - right_to_access
+    - right_to_rectification
+    - right_to_erasure  # with medical data exceptions
+    - right_to_portability
+    
+  special_category_data:
+    neural_data_is_health_data: true
+    requires_explicit_consent: true
+    dpo_required: true
+
+signal_requirements:
+  subliminal_patterns:
+    enforcement: block_with_logging
+    notification: data_protection_officer
+    
+  emotion_control:
+    enforcement: block_unless_emergency
+    approval_required: ethics_committee
+    patient_consent: explicit_written
+```
+
+### United Kingdom (MHRA)
+
+```yaml
+jurisdiction: UK
+regulatory_body: MHRA
+applicable_regulations:
+  - "UK MDR 2002 (as amended)"
+  - "UK GDPR"
+  - "Human Tissue Act 2004"
+
+device_classifications:
+  # Similar to EU classifications but UK-specific post-Brexit
+  align_with_eu: true
+  transition_period_until: "2028-06-30"
+  
+  additional_requirements:
+    - ukca_marking  # UK Conformity Assessed
+    - uk_responsible_person
+    
+signal_requirements:
+  write_operations:
+    hta_compliance: true  # Human Tissue Authority if implanted
+    patient_safeguarding: mandatory
+    
+audit_retention:
+  minimum_days: 90
+  clinical_trials: 1825  # 5 years
+  implanted_devices: 3650 # 10 years
+```
+
+## Multi-Jurisdictional Routing Logic
+
+```typescript
+interface ComplianceRoutingDecision {
+  jurisdictions: string[];
+  strictest_classification: string;
+  all_requirements: string[];
+  routing_path: RoutingPath;
+}
+
+class BCIComplianceRouter {
+  /**
+   * Route a BCI operation through all applicable jurisdictional validators
+   */
+  route(operation: BCIOperationRequest): ComplianceRoutingDecision {
+    const jurisdictions = operation.safety_profile.jurisdictions;
+    const requirements = [];
+    
+    // Gather requirements from each jurisdiction
+    for (const jurisdiction of jurisdictions) {
+      const rules = this.loadJurisdictionRules(jurisdiction);
+      requirements.push(...rules.getRequirements(operation));
+    }
+    
+    // Apply strictest standard (most conservative routing)
+    const strictest = this.determineStrictestClassification(requirements);
+    
+    // Generate routing path
+    const path = this.buildRoutingPath(strictest, jurisdictions);
+    
+    return {
+      jurisdictions,
+      strictest_classification: strictest,
+      all_requirements: requirements,
+      routing_path: path
+    };
+  }
+  
+  /**
+   * Determine if operation is compliant across all jurisdictions
+   */
+  async isCompliant(operation: BCIOperationRequest): Promise<boolean> {
+    const routing = this.route(operation);
+    
+    for (const jurisdiction of routing.jurisdictions) {
+      const validator = this.getValidator(jurisdiction);
+      const result = await validator.validate(operation);
+      
+      if (!result.compliant) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+}
+```
+
+## Cross-Border Considerations
+
+### Data Transfers
+
+```yaml
+cross_border_data_transfers:
+  eu_to_us:
+    mechanism: adequacy_decision_or_scc
+    scc: Standard Contractual Clauses
+    additional_measures:
+      - encryption_in_transit
+      - encryption_at_rest
+      - access_controls
+      
+  us_to_eu:
+    mechanism: eu_us_data_privacy_framework
+    fallback: standard_contractual_clauses
+    
+  uk_to_eu:
+    mechanism: adequacy_decision
+    status: granted_until_review
+    
+  general:
+    - data_localization_check
+    - patient_consent_verification
+    - anonymization_pseudonymization_assessment
+```
+
+### Clinical Trials
+
+```yaml
+multi_site_clinical_trials:
+  coordination:
+    lead_jurisdiction: typically_sponsor_country
+    ethics_approval: required_per_jurisdiction
+    
+  us_requirements:
+    - fda_ide_application
+    - irb_approval_per_site
+    - clinicaltrials_gov_registration
+    
+  eu_requirements:
+    - clinical_trial_application_per_state
+    - ethics_committee_approval
+    - eudract_registration
+    
+  data_sharing:
+    harmonization: ich_gcp_guidelines
+    patient_identifiers: pseudonymized
+    cross_border_transfer: compliant_mechanisms
+```
+
+## Emergency Override Protocols
+
+```yaml
+emergency_scenarios:
+  life_threatening_situation:
+    override_allowed: true
+    conditions:
+      - imminent_risk_to_life
+      - no_alternative_treatment
+      - qualified_medical_professional_present
+    
+    documentation_required:
+      - timestamp
+      - medical_justification
+      - patient_id
+      - operator_id
+      - witness_signature
+      
+    notification_timeline:
+      - immediate: hospital_administration
+      - within_24h: regulatory_authority
+      - within_7d: ethics_committee
+      
+    retroactive_approval:
+      required: true
+      timeline: 30_days
+      
+  non_emergency:
+    override_allowed: false
+    enforcement: hard_block_at_protocol_level
+```
+
+## Audit Requirements by Jurisdiction
+
+```typescript
+interface JurisdictionAuditRequirements {
+  jurisdiction: string;
+  retention_days: number;
+  required_fields: string[];
+  access_controls: string[];
+  encryption_required: boolean;
+  tamper_evidence: boolean;
+  
+  reporting_obligations: {
+    adverse_events: {
+      timeline_hours: number;
+      recipients: string[];
+    };
+    serious_adverse_events: {
+      timeline_hours: number;
+      recipients: string[];
+    };
+    device_malfunctions: {
+      timeline_hours: number;
+      recipients: string[];
+    };
+  };
+}
+
+const US_AUDIT_REQUIREMENTS: JurisdictionAuditRequirements = {
+  jurisdiction: 'US_federal',
+  retention_days: 2555, // 7 years
+  required_fields: [
+    'device_id', 'patient_id', 'operator_id', 'operation_type',
+    'parameters', 'outcome', 'adverse_events', 'chat_context_id'
+  ],
+  access_controls: ['role_based', 'mfa_required', 'audit_trail'],
+  encryption_required: true,
+  tamper_evidence: true,
+  
+  reporting_obligations: {
+    adverse_events: {
+      timeline_hours: 720, // 30 days
+      recipients: ['FDA_MAUDE']
+    },
+    serious_adverse_events: {
+      timeline_hours: 120, // 5 days
+      recipients: ['FDA_MAUDE', 'IRB']
+    },
+    device_malfunctions: {
+      timeline_hours: 720, // 30 days
+      recipients: ['FDA_MAUDE', 'manufacturer']
+    }
+  }
+};
+
+const EU_AUDIT_REQUIREMENTS: JurisdictionAuditRequirements = {
+  jurisdiction: 'EU',
+  retention_days: 2555, // 7 years minimum
+  required_fields: [
+    'device_id', 'patient_id', 'operator_id', 'operation_type',
+    'parameters', 'outcome', 'adverse_events', 'gdpr_consent_hash'
+  ],
+  access_controls: ['role_based', 'gdpr_compliant', 'dpo_oversight'],
+  encryption_required: true,
+  tamper_evidence: true,
+  
+  reporting_obligations: {
+    adverse_events: {
+      timeline_hours: 360, // 15 days
+      recipients: ['EUDAMED', 'competent_authority']
+    },
+    serious_adverse_events: {
+      timeline_hours: 48, // 2 days (death/serious injury)
+      recipients: ['EUDAMED', 'competent_authority', 'notified_body']
+    },
+    device_malfunctions: {
+      timeline_hours: 360, // 15 days
+      recipients: ['EUDAMED', 'manufacturer']
+    }
+  }
+};
+```
+
+---
+
+**Version**: 1.0  
+**Last Updated**: November 27, 2025  
+**Compliance**: FDA, MHRA, EU MDR, GDPR, ICH-GCP

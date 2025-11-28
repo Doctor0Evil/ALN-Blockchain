@@ -19,6 +19,7 @@
     "lint": "npm run lint --workspaces",
     "start:node": "npm run start --workspace=aln/core",
     "start:explorer": "npm run start --workspace=aln/explorer",
+    "verify:scaffold": "node tools/verify_aln_scaffold.js",
     "dev": "concurrently \"npm run start:node\" \"npm run start:explorer\""
   },
   "devDependencies": {

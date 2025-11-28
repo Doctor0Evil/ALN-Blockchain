@@ -1,0 +1,388 @@
+# BCI & Neuromorphic System Types
+
+## Overview
+
+This module defines type interfaces for Brain-Computer Interface (BCI) devices and neuromorphic computing systems integrated with the ALN blockchain.
+
+## BCIDeviceProfile
+
+```typescript
+interface BCIDeviceProfile {
+  // Device identification
+  device_id: string;
+  device_type: BCIDeviceType;
+  manufacturer: string;
+  model: string;
+  firmware_version: string;
+  
+  // Patient/user information
+  patient_id: string;
+  implant_date?: Date;
+  clinical_trial_id?: string;
+  
+  // Signal specifications
+  signal_bands: SignalBand[];
+  sampling_rate_hz: number;
+  channel_count: number;
+  electrode_locations: string[];
+  
+  // Safety classifications
+  risk_level: RiskLevel;
+  safety_level: BCISafetyLevel;
+  
+  // Operational constraints
+  read_only_mode: boolean;
+  write_enabled: boolean;
+  dual_human_oversight_required: boolean;
+  
+  // Jurisdictional compliance
+  jurisdictions: string[];
+  regulatory_approvals: RegulatoryApproval[];
+  
+  // Telemetry and monitoring
+  telemetry_required: boolean;
+  telemetry_interval_ms: number;
+  alert_threshold_config: AlertThresholds;
+}
+
+enum BCIDeviceType {
+  EEG = 'eeg',                        // Electroencephalography (non-invasive)
+  ECOG = 'ecog',                      // Electrocorticography (invasive)
+  INTRACORTICAL = 'intracortical',    // Utah array, Neuralink-style
+  FNIRS = 'fnirs',                    // Functional near-infrared spectroscopy
+  MEG = 'meg',                        // Magnetoencephalography
+  HYBRID = 'hybrid'                   // Multiple modalities
+}
+
+enum SignalBand {
+  DELTA = 'delta',           // 0.5-4 Hz (deep sleep)
+  THETA = 'theta',           // 4-8 Hz (drowsiness, meditation)
+  ALPHA = 'alpha',           // 8-13 Hz (relaxed, eyes closed)
+  BETA = 'beta',             // 13-30 Hz (active thinking)
+  GAMMA = 'gamma',           // 30-100 Hz (cognitive processing)
+  HIGH_GAMMA = 'high_gamma', // 100-200 Hz (motor control)
+  ULTRA_WIDE = 'ultra_wide'  // Full spectrum
+}
+
+enum RiskLevel {
+  MINIMAL = 'minimal',       // Non-invasive, read-only
+  LOW = 'low',               // Non-invasive with write, or invasive read-only
+  MODERATE = 'moderate',     // Invasive with limited write
+  HIGH = 'high',             // Invasive with full write access
+  CRITICAL = 'critical'      // Life-sustaining or autonomic control
+}
+
+enum BCISafetyLevel {
+  READ_ONLY = 'read_only',              // Only monitor, never stimulate
+  WRITE_SUPERVISED = 'write_supervised', // Stimulation with operator approval
+  WRITE_EMERGENCY = 'write_emergency'   // Emergency override allowed
+}
+```
+
+## NeuromorphicChipsetProfile
+
+```typescript
+interface NeuromorphicChipsetProfile {
+  // Hardware identification
+  chipset_id: string;
+  chipset_type: NeuromorphicType;
+  architecture: string;          // e.g., "SpiNNaker", "TrueNorth", "Loihi"
+  core_count: number;
+  synapse_count: bigint;
+  
+  // Integration context
+  host_system_id: string;
+  deployment_zone: string;
+  
+  // Organic computing interface (if applicable)
+  organic_computing_enabled: boolean;
+  bio_interface_type?: string;
+  
+  // Safety constraints
+  max_power_watts: number;
+  thermal_limit_celsius: number;
+  
+  // ALN integration
+  chat_context_id: string;
+  transcript_hash: string;
+  jurisdictions: string[];
+}
+
+enum NeuromorphicType {
+  DIGITAL_SPIKING = 'digital_spiking',     // IBM TrueNorth, Intel Loihi
+  ANALOG_MEMRISTOR = 'analog_memristor',   // Memristor-based
+  HYBRID = 'hybrid',                       // Mixed digital/analog
+  ORGANIC = 'organic',                     // Biological substrate
+  QUANTUM_NEURO = 'quantum_neuro'          // Quantum-enhanced neural
+}
+```
+
+## BCI Signal Guardrails
+
+```typescript
+interface BCISignalGuardrails {
+  // Pattern blocking
+  blocked_patterns: BlockedPattern[];
+  
+  // Stimulation limits
+  max_stimulation_voltage_v: number;
+  max_stimulation_current_ma: number;
+  max_pulse_frequency_hz: number;
+  max_pulse_duration_ms: number;
+  
+  // Duty cycle constraints
+  max_duty_cycle_percent: number;
+  min_rest_period_ms: number;
+  
+  // Emergency shutdown
+  emergency_shutdown_triggers: EmergencyTrigger[];
+}
+
+interface BlockedPattern {
+  pattern_id: string;
+  pattern_type: BlockedPatternType;
+  description: string;
+  detection_method: string;
+  enforcement: 'block' | 'flag' | 'require_approval';
+}
+
+enum BlockedPatternType {
+  COERCIVE = 'coercive',                 // Patterns that override free will
+  EMOTION_CONTROL = 'emotion_control',   // Forced emotional states
+  SUBLIMINAL = 'subliminal',             // Below conscious awareness
+  MEMORY_OVERRIDE = 'memory_override',   // Forced memory modification
+  AUTONOMIC_HIJACK = 'autonomic_hijack', // Breathing, heartbeat control
+  PAIN_INDUCTION = 'pain_induction',     // Deliberate pain stimulation
+  ADDICTION_PATTERN = 'addiction_pattern' // Reward hijacking
+}
+
+interface EmergencyTrigger {
+  trigger_id: string;
+  condition: string;              // e.g., "voltage > threshold"
+  action: EmergencyAction;
+  notification_required: boolean;
+  log_retention_days: number;
+}
+
+enum EmergencyAction {
+  SHUTDOWN_DEVICE = 'shutdown_device',
+  REDUCE_POWER = 'reduce_power',
+  ACTIVATE_SAFE_MODE = 'activate_safe_mode',
+  ALERT_MEDICAL_STAFF = 'alert_medical_staff',
+  TRIGGER_FAILSAFE = 'trigger_failsafe'
+}
+```
+
+## BCI Operation Request
+
+```typescript
+interface BCIOperationRequest {
+  // Identification
+  operation_id: string;
+  device_id: string;
+  operator_id: string;
+  
+  // Operation type
+  operation: BCIOperation;
+  
+  // Parameters
+  target_channels: number[];
+  signal_parameters: SignalParameters;
+  duration_ms: number;
+  
+  // Safety profile
+  safety_profile: BCIDeviceProfile;
+  
+  // Dual human approval (if required)
+  primary_operator: string;
+  secondary_operator?: string;
+  approval_signatures: string[];
+  
+  // Chat-native metadata
+  chat_context_id: string;
+  transcript_hash: string;
+  
+  // Medical justification (for write operations)
+  clinical_indication?: string;
+  expected_outcome?: string;
+  patient_consent_hash?: string;
+}
+
+enum BCIOperation {
+  READ_CONTINUOUS = 'read_continuous',
+  READ_EVENT_RELATED = 'read_event_related',
+  WRITE_STIMULATION = 'write_stimulation',
+  WRITE_MODULATION = 'write_modulation',
+  CALIBRATION = 'calibration',
+  DIAGNOSTIC = 'diagnostic'
+}
+
+interface SignalParameters {
+  frequency_hz: number;
+  amplitude_v: number;
+  pulse_width_ms: number;
+  waveform_type: 'sine' | 'square' | 'pulse' | 'custom';
+  target_band: SignalBand;
+}
+```
+
+## BCI Safety Check Result
+
+```typescript
+interface BCISafetyCheckResult {
+  approved: boolean;
+  operation_id: string;
+  device_id: string;
+  
+  // Checks performed
+  checks: {
+    device_authorized: boolean;
+    operator_certified: boolean;
+    parameters_within_limits: boolean;
+    blocked_patterns_absent: boolean;
+    dual_approval_verified: boolean;
+    patient_consent_verified: boolean;
+    jurisdiction_compliant: boolean;
+  };
+  
+  // Violations (if any)
+  violations: BCIViolation[];
+  
+  // Authorization
+  authorized_by: string[];
+  authorization_level: string;
+  
+  // Risk assessment
+  risk_score: number;           // 0-100
+  risk_factors: string[];
+  
+  // Audit
+  checked_at: Date;
+  policy_version: string;
+  
+  // Emergency override (if applicable)
+  emergency_override: boolean;
+  override_justification?: string;
+}
+
+interface BCIViolation {
+  code: string;                 // e.g., "BCI_ERR_COERCIVE_PATTERN"
+  severity: 'info' | 'warning' | 'critical' | 'fatal';
+  field: string;
+  message: string;
+  remediation: string;
+  
+  // Compliance impact
+  regulatory_impact: string[];  // Which regulations violated
+  patient_safety_impact: boolean;
+}
+```
+
+## Alert Thresholds
+
+```typescript
+interface AlertThresholds {
+  // Signal quality
+  min_signal_quality_percent: number;
+  
+  // Physiological
+  max_heart_rate_bpm: number;
+  min_heart_rate_bpm: number;
+  max_temperature_celsius: number;
+  
+  // Device integrity
+  max_impedance_ohms: number;
+  min_battery_percent: number;
+  
+  // Stimulation safety
+  max_charge_per_pulse_nc: number;
+  max_charge_density_uc_cm2: number;
+}
+```
+
+## Policy Validator Interface
+
+```typescript
+interface BCIPolicyValidator {
+  /**
+   * Validate a BCI operation request against all applicable policies
+   */
+  validateOperation(request: BCIOperationRequest): Promise<BCISafetyCheckResult>;
+  
+  /**
+   * Check if operation contains blocked signal patterns
+   */
+  detectBlockedPatterns(signal: SignalParameters): Promise<BlockedPattern[]>;
+  
+  /**
+   * Verify operator certification and authorization
+   */
+  verifyOperator(operator_id: string, operation: BCIOperation): Promise<boolean>;
+  
+  /**
+   * Calculate risk score for operation (0-100)
+   */
+  calculateRiskScore(request: BCIOperationRequest): Promise<number>;
+  
+  /**
+   * Check if dual human approval is required
+   */
+  requiresDualApproval(request: BCIOperationRequest): boolean;
+}
+```
+
+## Audit Stream
+
+```typescript
+interface BCIAuditEntry {
+  // Core identification
+  transaction_hash: string;
+  operation_id: string;
+  device_id: string;
+  patient_id: string;
+  
+  // Operation details
+  operation: BCIOperation;
+  duration_ms: number;
+  channels_used: number[];
+  
+  // Safety validation
+  safety_checks_passed: string[];
+  violations: BCIViolation[];
+  risk_score: number;
+  
+  // Authorization
+  operators: string[];
+  dual_approval: boolean;
+  emergency_override: boolean;
+  
+  // Chat context
+  chat_context_id: string;
+  transcript_hash: string;
+  
+  // Jurisdictional compliance
+  jurisdictions: string[];
+  regulatory_approvals_verified: string[];
+  
+  // Timestamps
+  requested_at: Date;
+  approved_at: Date;
+  executed_at: Date;
+  completed_at: Date;
+  
+  // Outcome (if available)
+  outcome: 'success' | 'partial' | 'failed' | 'aborted';
+  adverse_events: string[];
+  
+  // Audit metadata
+  policy_version: string;
+  retention_until: Date;          // 90+ days minimum
+  tamper_evident_hash: string;
+}
+```
+
+---
+
+**Version**: 1.0  
+**Last Updated**: November 27, 2025  
+**Compliance**: FDA 21 CFR 812 (IDE), EU MDR 2017/745, ISO 14971 (Risk Management)

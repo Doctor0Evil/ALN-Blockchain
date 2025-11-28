@@ -21,6 +21,11 @@ class ValidationReport {
     this.isValid = true;
     this.errors = [];
     this.warnings = [];
+    this.metadata = {
+      modules: [],
+      types: [],
+      raw: null
+    };
   }
 
   addError(message, line = null) {
@@ -40,7 +45,7 @@ class ValidationReport {
  */
 function parseAlnDocument(text) {
   const doc = new ParsedAlnDoc();
-  
+
   if (!text || typeof text !== 'string') {
     doc.errors.push('Invalid input: text must be non-empty string');
     return doc;
@@ -50,29 +55,57 @@ function parseAlnDocument(text) {
   let currentSection = null;
   let lineNumber = 0;
 
-  for (const line of lines) {
+  // Support for module/type syntax (aln_module "name" { ... })
+  // We keep a simple state machine for module blocks
+  let inModule = false;
+  let currentModuleName = null;
+  let currentModuleBuffer = [];
+
+  for (const rawLine of lines) {
     lineNumber++;
+    const line = rawLine.replace(/\r$/, '');
     const trimmed = line.trim();
 
-    // Skip empty lines and comments
-    if (!trimmed || trimmed.startsWith('#')) {
+    if (!trimmed) continue;
+
+    // Comments
+    if (trimmed.startsWith('#') || trimmed.startsWith('//')) continue;
+
+    // Module start
+    if (!inModule && /^aln_module\s+"[^"]+"\s*\{\s*$/.test(trimmed)) {
+      inModule = true;
+      currentModuleName = trimmed.match(/^aln_module\s+"([^"]+)"/)[1];
+      currentModuleBuffer = [];
       continue;
     }
 
-    // Check for section headers
+    // Module end
+    if (inModule && trimmed === '}') {
+      doc.rawSections[`module:${currentModuleName}`] = currentModuleBuffer.slice();
+      inModule = false;
+      currentModuleName = null;
+      currentModuleBuffer = [];
+      continue;
+    }
+
+    if (inModule) {
+      currentModuleBuffer.push({ line: lineNumber, content: trimmed });
+      continue;
+    }
+
+    // Section headers
     if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
       currentSection = trimmed.slice(1, -1).toLowerCase();
       doc.rawSections[currentSection] = [];
       continue;
     }
 
-    // Parse key-value pairs
+    // Key-value inside chainlexeme sections
     const colonIndex = trimmed.indexOf(':');
     if (colonIndex > 0 && currentSection) {
       const key = trimmed.slice(0, colonIndex).trim();
       const value = trimmed.slice(colonIndex + 1).trim();
 
-      // Store in appropriate section
       if (currentSection === 'header') {
         doc.header[key] = parseValue(value);
       } else if (currentSection === 'data') {
@@ -141,12 +174,26 @@ function validateChainlexemes(doc) {
     report.addError('Missing required [footer] section');
   }
 
-  // Rule 2: Validate header fields
+  // Rule 2: Validate header fields (support chat-native metadata)
   const requiredHeaderFields = ['op_code', 'from', 'to', 'nonce'];
   for (const field of requiredHeaderFields) {
     if (!(field in doc.header)) {
       report.addError(`Missing required header field: ${field}`);
     }
+  }
+
+  // Optional chat-native fields - warn if governance/migration without them
+  const chatFields = ['chat_context_id', 'transcript_hash'];
+  const needsChatFields = ['governance_proposal', 'governance_vote', 'migration_lock', 'migration_mint'];
+  if (doc.header.op_code && needsChatFields.includes(doc.header.op_code)) {
+    for (const cf of chatFields) {
+      if (!(cf in doc.header)) {
+        report.addWarning(`Recommended header field missing for ${doc.header.op_code}: ${cf}`);
+      }
+    }
+  }
+  if (doc.header.jurisdiction_tags && !Array.isArray(doc.header.jurisdiction_tags)) {
+    report.addError('jurisdiction_tags must be an array');
   }
 
   // Rule 3: Validate op_code
@@ -160,10 +207,10 @@ function validateChainlexemes(doc) {
   }
 
   // Rule 4: Validate address format (aln1...)
-  if (doc.header.from && !doc.header.from.startsWith('aln1')) {
+  if (doc.header.from && typeof doc.header.from === 'string' && !doc.header.from.startsWith('aln1')) {
     report.addError(`Invalid from address format: must start with 'aln1'`);
   }
-  if (doc.header.to && !doc.header.to.startsWith('aln1')) {
+  if (doc.header.to && typeof doc.header.to === 'string' && !doc.header.to.startsWith('aln1')) {
     report.addError(`Invalid to address format: must start with 'aln1'`);
   }
 
@@ -203,6 +250,16 @@ function validateChainlexemes(doc) {
   if (doc.header.op_code === 'transfer') {
     if (!doc.data.amount) {
       report.addError('Transfer requires amount in data section');
+    }
+  }
+
+  // Governance vote requires proposal_id and support
+  if (doc.header.op_code === 'governance_vote') {
+    if (!doc.data.proposal_id) {
+      report.addError('Governance vote requires proposal_id in data section');
+    }
+    if (!doc.data.support) {
+      report.addError('Governance vote requires support (for|against|abstain)');
     }
   }
 

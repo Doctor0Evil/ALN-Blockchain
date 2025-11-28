@@ -1,0 +1,31 @@
+aln_module "grid_settlement" {
+  version: "1.0"
+  description: "Settle energy allocations and pricing for smart-city grids"
+
+  // Settlement cycle
+  settlement_interval_blocks: 100  // ~8 minutes at 5s blocks
+
+  // Pricing model
+  function calculatePrice(demand, supply) -> float {
+    // IEEE 2030.5-style transactive pricing
+    // Returns: price per kWh in ALN credits
+  }
+
+  // Allocation fairness
+  function enforceMaxShare(allocations[]) {
+    // Constraint: no actor exceeds 10% of total allocation
+    // If violated, redistribute excess proportionally
+  }
+
+  // Fraud detection and reversal
+  function detectFraud(allocation_history[]) -> FraudReport[] {
+    // Identify anomalies: sudden spikes, repeated overdraws
+    // Return reports with evidence for review
+  }
+
+  function reverseFraudulentAllocation(allocation_id, authority) {
+    // Reverse allocation
+    // Adjust balances
+    // Emit audit event
+  }
+}

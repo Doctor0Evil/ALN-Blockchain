@@ -1,0 +1,58 @@
+aln_policy "token_creation_pipeline" {
+  version: "1.0"
+  description: "Gate all token deployments through compliance and malware checks"
+
+  // Workflow phases
+  phases: [
+    "submit_blueprint",
+    "analyze_and_refactor",
+    "review",
+    "approve_or_reject",
+    "deploy"
+  ]
+
+  // Blueprint submission
+  function submitTokenBlueprint(submitter, blueprint) -> BlueprintID {
+    // Validate blueprint structure
+    // Check prepaid ALN fee (from constants.ALN_TREASURY_ADDRESS)
+    // Assign unique blueprint_id
+    // Store in pending table
+    // Return blueprint_id
+  }
+
+  // Analysis and refactoring
+  function analyzeAndRefactor(blueprint_id) -> RefactorReport {
+    // Run static analysis + ML scoring (malware.aln hooks)
+    // Check naming constraints (impersonation, scam terms)
+    // Auto-refactor unsafe patterns:
+    //   - Remove honeypot balance locks
+    //   - Strip self-destruct drainers
+    //   - Cap admin privileges
+    // Return RefactorReport(
+    //   original_code,
+    //   transformed_code,
+    //   changes[],
+    //   safe: bool,
+    //   rejected_reasons[]
+    // )
+  }
+
+  // Optional DAO review for edge cases
+  function requireReview(blueprint_id) -> bool {
+    // If auto-refactor confidence < threshold, escalate to DAO
+  }
+
+  // Approval or rejection
+  function approveOrReject(blueprint_id, decision, reviewer) {
+    // If approved: move to deploy queue
+    // If rejected: emit audit event with reasons, refund partial fee
+  }
+
+  // Deployment
+  function deployToken(blueprint_id) {
+    // Validate fee payment
+    // Deploy transformed contract
+    // Emit deployment event with transcript_hash if present
+    // Update audit log
+  }
+}
