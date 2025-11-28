@@ -1,0 +1,220 @@
+aln_spec "ALN security-first blockchain foundation (for Copilot)" {
+  meta {
+    purpose   = "Guide Copilot to generate only serious, non-fictional, security-grade ALN code."
+    scope     = ["L1 consensus + networking", "execution", "policy engine", "tooling"]
+    note      = "Canto and Planq are *references only* for patterns; ALN is a separate, stricter chain."
+  }
+
+  ## 1. Security objectives (non-negotiable)
+
+  security_objectives {
+    goal "world_leading_security" {
+      description = "ALN must match or exceed best-practice L1/L2 security (e.g., Bitcoin/Ethereum hardening patterns) with additional policy and isolation layers."
+      properties  = [
+        "no_implicit_trust_of_external_chains_or_tokens",
+        "defense_in_depth (network → consensus → execution → policy)",
+        "formal_verification_targets for consensus and critical contracts",
+        "strict_chain_isolation (no shared state with Canto, Planq, etc.)"
+      ]
+    }
+
+    goal "strict_environment_separation" {
+      description = "ALN mainnet, testnets, devnets, and sim-nets are completely separated; cross‑domain movement is only through well-defined, audited bridges."
+      controls = [
+        "distinct_chain_ids_and_address_spaces",
+        "separate_bootnodes_and_genesis_files",
+        "explicit_bridge_contracts with rate‑limits + watchdogs"
+      ]
+    }
+
+    goal "lawful_use_only" {
+      description = "Prevent ALN from being used to evade law, launder funds, or bypass safety; always keep human-rights and due-process constraints."
+      requirements = [
+        "KYC/AML gating on system-level roles where jurisdiction demands it",
+        "audit_traces for high-risk flows (aggregated / privacy-preserving where required)",
+        "no_backdoors, no secret_admin_keys"
+      ]
+    }
+  }
+
+  ## 2. Chain architecture (feasible, non-fictional)
+
+  chain_architecture {
+    base_layer {
+      consensus = "Proof-of-Stake with BFT finality (e.g., Tendermint‑family or HotStuff-style implementation)."
+      execution = "WASM-based runtime with a restricted smart-contract language (ALN) compiled to WASM."
+      data_model = "Account-based with explicit system namespaces for treasury, policy, reputation, and energy."
+    }
+
+    security_features {
+      - "Static-configurable validator set with staking, slashing, and double-sign detection."
+      - "Mandatory hardware security modules (HSMs) or secure enclaves for validator keys where possible."
+      - "Encrypted p2p networking (TLS/noise) and DoS-resistant peer selection."
+      - "On-chain governance limited to parameter changes; no arbitrary code injection at L1 without audit."
+    }
+  }
+
+  ## 3. Environment and chain separation
+
+  environment_isolation {
+    chains = [
+      "aln-mainnet",
+      "aln-law-enf-net (restricted, extra audit & compliance)",
+      "aln-testnet",
+      "aln-simnet (for Unreal/Deus-Ex-style simulations)"
+    ]
+
+    rule "no_shared_state" {
+      description = "No direct shared state between ALN and external chains (including Canto, Planq)."
+      enforcement = [
+        "no_light_client_of_external_chains_in_core",
+        "all cross-chain transfers via explicitly-audited bridge modules"
+      ]
+    }
+
+    migration_support "external_chain_support" {
+      description = "Offer *migration tools* to external ecosystems without adopting their risks."
+      notes = [
+        "Read-only indexers for Canto/Planq to classify patterns and build ML models against exploits.",
+        "Safe re-deployment of cleaned contracts on ALN with mandatory security review."
+      ]
+    }
+  }
+
+  ## 4. ALN policy + execution safety (what Copilot should generate)
+
+  policy_engine {
+    layer "execution_safety" {
+      features = [
+        "bounded_gas_and_memory_per_tx",
+        "no_unsafe_syscalls inside WASM (e.g., no raw network IO, no filesystem)",
+        "deterministic execution only (no wall-clock, no nondeterministic randomness)"
+      ]
+    }
+
+    layer "contract_policies" {
+      modules = [
+        "token_policy (enforce ALN-only stable token economics)",
+        "augmentation_policy (capabilities for augmented users, as described earlier)",
+        "governance_policy (chat-native + on-chain settlement only)",
+        "compliance_policy (jurisdiction tags, risk classes, audit duties)"
+      ]
+    }
+
+    requirement "no_unvetted_code_paths" {
+      description = "All system-level modules and critical contracts must be formally reviewed and fuzz-tested before deployment."
+      tools       = ["property-based testing", "fuzzing harnesses", "symbolic execution where feasible"]
+    }
+  }
+
+  ## 5. What "most secure" should mean for Copilot code
+
+  copilot_security_guidance {
+    do_generate = [
+      "well-structured modules in Rust/Go/TypeScript/ALN-WASM with explicit types and error handling",
+      "code that *always* checks policy/permissions before state changes",
+      "unit + integration tests that cover abuse cases, invalid inputs, and failure modes",
+      "Unreal integration that never bypasses chain or policy checks"
+    ]
+
+    do_not_generate = [
+      "direct brain- or body-control code (no invasive BCI control; only high-level policy/logging interfaces)",
+      "hidden admin functions that move funds or change user state without on-chain governance",
+      "shortcuts that disable or bypass validation in production builds",
+      "direct Canto/Planq state reuse; use them only as reference/test data"
+    ]
+  }
+
+  ## 6. Example: hardened ALN module skeleton (Rust, non-fictional)
+
+  example_module "aln_treasury_and_policy" {
+    language = "Rust"
+    purpose  = "Show Copilot the security posture expected in ALN modules."
+
+    snippet = """
+    // Core ALN treasury and policy module (Rust WASM contract skeleton).
+    // Non-fictional: layout matches common Cosmos/Polkadot/WASM patterns.
+
+    use aln_sdk::{
+        auth::{ensure_signed, Role},
+        types::{Address, Amount, PolicyCheckResult},
+        storage,
+        error::AlnError,
+    };
+
+    const ALN_TREASURY_ADDRESS: &str = "ALN18sd2ujv24ual9c9pshtxys6j8knh6xaek9z83t";
+
+    #[derive(Clone)]
+    pub struct TreasuryConfig {
+        pub stable_unit_target_usd: f64,
+        pub btc_reserve_ratio_min: f64,
+        pub max_daily_drift_bps: u32,
+    }
+
+    pub fn handle_fee_deposit(sender: Address, amount: Amount) -> Result<(), AlnError> {
+        // 1) Auth: must be a valid account
+        ensure_signed(&sender)?;
+
+        // 2) Policy: verify that this fee type and origin are allowed
+        let policy_res: PolicyCheckResult =
+            aln_sdk::policy::check_fee_origin(&sender, &amount)?;
+        if !policy_res.allowed {
+            return Err(AlnError::PolicyViolation(policy_res.reason));
+        }
+
+        // 3) Accounting: move to canonical treasury, no side channels
+        storage::bank::transfer(
+            &sender,
+            &Address::from_static(ALN_TREASURY_ADDRESS),
+            amount,
+        )?;
+
+        // 4) Audit log
+        aln_sdk::audit::emit_event("fee_deposit", |e| {
+            e.insert("from", sender.to_string());
+            e.insert("amount", amount.to_string());
+        });
+
+        Ok(())
+    }
+
+    pub fn handle_token_creation_request(
+        requester: Address,
+        blueprint: TokenBlueprint,
+    ) -> Result<TokenId, AlnError> {
+        ensure_signed(&requester)?;
+
+        // 1) Require ALN token prepayment
+        aln_sdk::token::ensure_aln_prepayment(&requester, blueprint.creation_fee)?;
+
+        // 2) Run static + ML-based policy checks (no honeypots, no malice)
+        let analysis = aln_sdk::analysis::analyze_token_blueprint(&blueprint)?;
+        if !analysis.compliant {
+            return Err(AlnError::PolicyViolation(analysis.reason));
+        }
+
+        // 3) Enforce naming + metadata rules
+        aln_sdk::policy::validate_token_metadata(&blueprint.metadata)?;
+
+        // 4) Create token with locked, reviewable config
+        let token_id = storage::token::create_verified_token(&requester, &blueprint)?;
+
+        aln_sdk::audit::emit_event("token_created", |e| {
+            e.insert("creator", requester.to_string());
+            e.insert("token_id", token_id.to_string());
+        });
+
+        Ok(token_id)
+    }
+    """
+  }
+
+  ## 7. Copilot instruction summary (for this repo)
+
+  instructions_for_copilot {
+    - "Treat ALN as a serious, production-grade chain and policy engine, not as a toy or fictional universe."
+    - "Use Canto and Planq only as historical/contextual references (attack patterns, UX precedents); do *not* copy their chain or economics."
+    - "Prioritize security, auditability, and human-rights compliance in every subsystem."
+    - "When in doubt, default to: deny the action, log it, and surface a clear reason for review."
+  }
+}

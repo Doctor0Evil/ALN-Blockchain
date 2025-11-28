@@ -1,0 +1,171 @@
+aln_spec "ALN BCI-safe neuromorphic wallet & opt-in architecture" {
+  meta {
+    intent   = "Make ALN the safest, most compliant platform for BCI / EEG / neuromorphic integrations."
+    scope    = ["BCI devices", "neuromorphic wallet", "opt-in/opt-out", "off-grid survivability"]
+    note     = "No Keplr, Rabby, or third-party wallets; ALN manages its own wallet stack."
+  }
+
+  ## 1. Safety and legal boundaries for BCI
+
+  bci_safety_principles {
+    - "BCI/EEG integrations are *interfaces*, not control channels: ALN never sends raw 'commands' into brains."
+    - "All BCI operations are read-mostly, with explicit user consent for any write-like stimulation via separate, medically approved systems."
+    - "No subliminal influence, coercive patterns, or emotion-control algorithms are permitted in ALN modules."
+    - "Regulated-device compliance (e.g., FDA/CE) is a design constraint, not an afterthought."
+  }
+
+  ## 2. BCI / EEG device abstraction layer
+
+  module "bci_neuromorphic_adapter" {
+    purpose = "Standardize how ALN talks to BCI/EEG devices without vendor lock-in."
+
+    types = [
+      "BciDeviceId",
+      "BciSignalSummary { theta_alpha_ratio, workload_index, fatigue_index, confidence }",
+      "ConsentState { EXPLICITLY_GRANTED, REVOKED, UNKNOWN }"
+    ]
+
+    interfaces = [
+      "IBciReader { fn read_summary(device: BciDeviceId) -> BciSignalSummary }",
+      "IConsentManager { fn get_consent(user_did) -> ConsentState }"
+    ]
+
+    rule "no_raw_stream_on_chain" {
+      description = "Only high-level summaries leave the device; no raw EEG on-chain or in public logs."
+    }
+  }
+
+  ## 3. Neuromorphic / BCI-native ALN wallet
+
+  module "aln_neurowallet" {
+    description = "Opt-in, neuromorphic/BCI-aware wallet that is human/organic-system compatible and self-managed."
+
+    features = [
+      "Local key management: keys held in secure hardware (TPM/TEE/secure element) or neuromorphic co-processor, never on remote servers.",
+      "BCI-assisted UX: confirmation and signing flows can be gated on 'ready/attention' states, but never forced.",
+      "Multi-factor by default: biometric/BCI + PIN/passphrase + device binding."
+    ]
+
+    api {
+      fn create_wallet(user_did, device_fingerprint) -> WalletId;
+      fn sign_tx(wallet: WalletId, tx_bytes, policy_context) -> Signature;
+      fn export_watch_only(wallet: WalletId) -> WatchConfig;
+    }
+
+    constraint "no_hidden_signing" {
+      description = "Every signature requires an explicit, user-perceivable confirmation (visual, haptic, or voice)."
+    }
+  }
+
+  ## 4. Opt-in / opt-out model (including voice-command)
+
+  opt_in_model {
+    flow "enable_bci_wallet" {
+      steps = [
+        "User installs ALN neurowallet on a trusted device.",
+        "User explicitly enables BCI features via GUI or CLI (no default-on).",
+        "System records a signed 'BCI_OPT_IN' consent artifact tied to user_did and jurisdiction.",
+        "BCI integration remains disabled until consent is on-chain or anchored in a verifiable log."
+      ]
+    }
+
+    flow "disable_bci_wallet_via_voice" {
+      description = "Easy, safe opt-out using a spoken phrase to a trusted home assistant or device."
+
+      assumptions = [
+        "Assistant device has local wake-word and speaker recognition.",
+        "Assistant can reach ALN neurowallet over a secure local or remote channel."
+      ]
+
+      pseudo_api = """
+      // Called by the trusted home-assistant on recognized voice command:
+      POST /aln/neurowallet/opt-out
+      {
+        user_did: "...",
+        command_hash: "hash('disable ALN BCI wallet now')",
+        device_fingerprint: "...",
+        auth_proof: "signed by assistant's hardware key"
+      }
+      """
+
+      behavior = [
+        "Immediately revoke BCI_OPT_IN consent in the wallet and on-chain policy.",
+        "Terminate any active BCI-dependent sessions.",
+        "Fallback to standard ALN wallet UX only (no BCI hooks)."
+      ]
+    }
+
+    rule "opt_in_only" {
+      description = "BCI/neuromorphic wallet functionality can *only* be enabled through explicit opt-in; no auto-enrollment."
+    }
+  }
+
+  ## 5. Independence from smart-city / home infrastructure
+
+  resilience_design {
+    goal "standalone_operation" {
+      description = "ALN must function even if smart-city or home assistants are offline."
+
+      strategies = [
+        "Wallet must support offline signing with queued broadcast when connectivity returns.",
+        "Chain nodes can run on low-power edge devices, not just data centers.",
+        "Augmented users can trigger wallet actions via local UI (HUD, wearable) without any cloud dependency."
+      ]
+    }
+
+    goal "off_grid_capable" {
+      description = "ALN should not assume constant grid access or continuous power."
+
+      features = [
+        "Light client support: SPV / light-WASM nodes for constrained hardware.",
+        "Store-and-forward support for transactions when paths to full nodes are intermittent.",
+        "Deterministic, signed state snapshots cached locally, so neurowallet can answer 'what's my balance/allowances?' offline."
+      ]
+    }
+  }
+
+  ## 6. "Neurally grounded" system-level calls
+
+  neurally_grounded_calls {
+    idea = "Use local neuromorphic hardware and OS-level hooks to route ALN calls through the user's own resources, not remote black boxes."
+
+    examples = [
+      "Local policy evaluation: some ALN policy checks can be pre-evaluated on the device before hitting the chain, reducing latency and exposure.",
+      "Personal energy + cognitive state gating: if mental/physical load is too high, the local system can *refuse* non-urgent high-risk operations.",
+      "Emergency-stop: a local gesture/word/hardware button that forces the wallet into 'locked' state until reset."
+    ]
+
+    constraints = [
+      "Never bypass chain-level policies (device-local checks are *additional* safeguards).",
+      "All critical actions still produce on-chain or anchored audit events when connectivity permits."
+    ]
+  }
+
+  ## 7. Unreal / application integration patterns (high-level)
+
+  ue_integration {
+    guideline = "Treat ALN as the authoritative ledger and policy engine; Unreal is a visualization and interaction shell."
+
+    for_unreal_plugins = [
+      "Do not embed raw EEG control; use ALN's BCI summary APIs.",
+      "Use neurowallet APIs for signing, not ad-hoc key storage.",
+      "Respect opt-in/opt-out state from ALN for any BCI-driven features."
+    ]
+  }
+
+  ## 8. Copilot code generation rules (BCI / neurowallet)
+
+  copilot_rules {
+    must_do = [
+      "Always model BCI as optional, consented, and revocable.",
+      "Generate neurowallet code with explicit confirmation flows and audit logging.",
+      "Provide offline-capable, low-dependency modes for signing and querying state."
+    ]
+
+    must_not_do = [
+      "No code that attempts direct neural stimulation or behavior control.",
+      "No assumptions that ALN requires smart-city/cloud to function.",
+      "No integration with third-party crypto wallets (Keplr, Rabby, etc.) for core ALN flows."
+    ]
+  }
+}

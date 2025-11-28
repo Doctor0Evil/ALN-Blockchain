@@ -1,0 +1,337 @@
+aln_spec "ALN security + BCI neurowallet hardening (Copilot profile)" {
+  meta {
+    purpose = "Turn ALN into a security-maximal, BCI-safe, non-fictional L1 with strict isolation and lawful-only use."
+    scope   = ["L1 consensus", "networking", "execution", "policy engine", "BCI/neurowallet"]
+    note    = "Canto/Planq appear only as external-data references; ALN is a separate, stricter, isolated chain."
+  }
+
+  ######################################################################
+  ## 0. New terminology (non-fictional, implementable)
+  ######################################################################
+
+  terminology {
+    term "nanotopologene" {
+      definition = "Foundational archetype for MCP-recognized, ultra-performance nanoswarm nodes operating at or above a legislated, context-sensitive throughput threshold, enabling certified AI-superintelligence deployment in real-world robotic surgery and critical infrastructure networks."
+      syntax = """
+      nanotopologene {
+        node_id: string,                 # Unique nanoswarm node identifier
+        ops_threshold_tops: u64,         # Minimum throughput capacity in TOPS
+        topology_matrix: [[u16; 8]; 8],  # Mesh / fabric layout for QPU or accelerator interconnect
+        compliance_level: string,        # e.g., 'surgical-grade', 'law-enf-grade'
+        ai_firmware_version: string      # ALN-compatible firmware identifier
+      } -> returns { validation_status: bool, system_metrics: map<string, u64> }
+      """
+    }
+
+    term "neurocustody_boundary" {
+      definition = "The formally specified limit where BCI systems may read user state for wallet UX but cannot exert direct neural control or modify affect; enforced at protocol, device, and policy layers."
+    }
+
+    term "jurisprudent_chain_isolation" {
+      definition = "Combination of technical and legal controls ensuring ALN maintains no implicit trust, no shared mutable state, and no unsupervised asset flow with any external chain or off-ledger system while remaining compliant with jurisdictional law."
+    }
+
+    term "optivault_neurowallet" {
+      definition = "An ALN-native, neuromorphic wallet profile in which all BCI-related capabilities are strictly opt-in, multi-factor protected, vocally revocable, and auditable, with offline survivability and no third-party wallet dependency."
+    }
+  }
+
+  ######################################################################
+  ## 1. L1 security posture: "most secure, non-bypassable"
+  ######################################################################
+
+  security_objectives_ext {
+    invariant "zero_implicit_trust" {
+      description = "ALN core assumes all external chains, oracles, and tools are untrusted unless wrapped in audited, rate-limited bridges and policy modules."
+      enforced_by = [
+        "no_external_light_clients_in_core",
+        "bridge_modules_require_multi_sig_and_rate_limits",
+        "explicit_risk_class_tags for all cross-domain flows"
+      ]
+    }
+
+    invariant "jurisprudent_chain_isolation" {
+      description = "ALN mainnet, testnets, law-enforcement nets, and simnets maintain strict technical and legal separation, with only whitelisted, audited, one-directional or rate-limited channels where allowed."
+    }
+
+    invariant "bci_neurocustody_boundary" {
+      description = "BCI/EEG modules provide state summaries for UX and safety gating only, never direct neural actuation, affect manipulation, or covert stimulus shaping."
+    }
+
+    target "world_leading_consensus_security" {
+      description = "Consensus safety and liveness must match or exceed best-in-class BFT PoS L1s, including formalized safety proofs, slashing, and monitoring."
+      metrics = [
+        "byzantine_fault_tolerance >= 1/3 of voting power",
+        "deterministic_finality_within_N_blocks",
+        "double_sign_detection_and_slash_in_all_clients"
+      ]
+    }
+  }
+
+  ######################################################################
+  ## 2. ALN chain architecture (security-maximal profile)
+  ######################################################################
+
+  chain_architecture {
+    base_layer {
+      consensus = "BFT-style Proof-of-Stake (e.g., Tendermint/HotStuff-family) with formalized safety properties and strict validator admission policies."
+      execution = "Deterministic WASM runtime; ALN contracts compile to a restricted subset of WASM with no dynamic syscalls."
+      data_model = "Account-based with reserved namespaces for treasury, policy, compliance, law-enf, and BCI/neurowallet state."
+    }
+
+    validator_security_profile "nanotopologene_profile" {
+      description = "Profile for validators attached to nanoswarm or neuromorphic infrastructure requiring cryptographic, hardware, and procedural guarantees."
+      requirements = [
+        "HSM_or_TPM_backed_keys with tamper‑resistance and secure erase.",
+        "MEV-minimization via proposer/builder separation where feasible.",
+        "remote_attestation for validator binaries and configurations.",
+        "continuous_anomaly_monitoring for equivocations, latency spikes, or abnormal voting patterns."
+      ]
+    }
+
+    networking_hardening {
+      p2p_stack = [
+        "mutual_auth_encryption (TLS or Noise-based handshakes with certificate pinning).",
+        "rate_limited_handshakes and identity-based peer scoring to mitigate DoS.",
+        "strict_separation_of_public_and_validator_interfaces (separate ports, ACLs)."
+      ]
+    }
+
+    governance_constraints {
+      - "On-chain governance may adjust parameters and enable/disable feature flags; it may not directly upload arbitrary new consensus code without off-chain audit and multi-layer approvals."
+      - "Any protocol upgrade path must include rollback plans and safe-mode operation, not just one-way migrations."
+    }
+  }
+
+  ######################################################################
+  ## 3. Environment and chain separation (enforced)
+  ######################################################################
+
+  environment_isolation {
+    chains = [
+      "aln-mainnet",
+      "aln-law-enf-net",
+      "aln-testnet",
+      "aln-simnet"
+    ]
+
+    rule "no_shared_state" {
+      description = "No mutable state is shared between ALN chains or with external chains; only explicit, typed messages through bridge modules."
+      technical_controls = [
+        "distinct_chain_ids_and_address_prefixes",
+        "independent_genesis_and_bootnode_sets",
+        "bridge_modules_only_in_non_consensus_critical_layer"
+      ]
+    }
+
+    bridge_policy "law_enf_bridge" {
+      description = "Specialized bridge between aln-law-enf-net and aln-mainnet for warrants, risk flags, and lawful-freeze requests."
+      properties = [
+        "all messages carry jurisdiction, warrant_id, and expiry metadata.",
+        "actions are advisory: mainnet enforces human-rights-preserving policy, not opaque remote control.",
+        "every action produces privacy-preserving but verifiable audit proofs."
+      ]
+    }
+
+    migration_support "external_chain_support" {
+      description = "Read-only, indexer-based import of external chain patterns for exploit detection and safe re-deployment, with no shared trust anchor."
+    }
+  }
+
+  ######################################################################
+  ## 4. Policy engine: lawful-only and non-bypassable
+  ######################################################################
+
+  policy_engine {
+    layer "execution_safety" {
+      features = [
+        "bounded_gas_and_memory_per_tx",
+        "no_external_network_or_filesystem_syscalls_in_WASM",
+        "deterministic_execution (no wall-clock, external randomness, or system-specific behavior)"
+      ]
+    }
+
+    layer "lawful_use" {
+      purpose = "Constrain high-risk operations to lawful, due-process-aligned patterns while preserving fundamental rights."
+      controls = [
+        "role_scoped_KYC_for_system_critical_roles in jurisdictions that require it.",
+        "risk_scoring_for_contracts_and_addresses with explainable criteria (no black-box denial).",
+        "frozen_state_flags that require on-chain, multi-party approvals to set or clear."
+      ]
+    }
+
+    requirement "no_unvetted_code_paths" {
+      description = "System modules and critical contracts must undergo formal review, fuzzing, property-based testing, and where feasible, formal verification before deployment."
+    }
+  }
+
+  ######################################################################
+  ## 5. BCI/EEG safety and neuromorphic wallet (optivault_neurowallet)
+  ######################################################################
+
+  bci_safety_principles {
+    - "BCI/EEG modules act as interfaces and safety gates, not as sources of neural commands or behavioral shaping."
+    - "All write-like or stimulation effects occur only through certified medical devices governed by independent regulations; ALN only transports consents, authorizations, and logs."
+    - "Authentication, software updates, and wireless links for BCIs must use strong encryption, integrity checks, and authenticated recovery paths."
+  }
+
+  module "bci_neuromorphic_adapter" {
+    purpose = "Abstract vendor-specific BCI/EEG hardware into a safe ALN policy surface."
+
+    types = [
+      "BciDeviceId = string",
+      "BciSignalSummary { theta_alpha_ratio: f32, workload_index: f32, fatigue_index: f32, confidence: f32 }",
+      "ConsentState { EXPLICITLY_GRANTED, REVOKED, UNKNOWN }",
+      "NeurocustodyClass { VIEW_ONLY, UX_GATING_ONLY }"
+    ]
+
+    interfaces = [
+      "IBciReader { fn read_summary(device: BciDeviceId) -> BciSignalSummary }",
+      "IConsentManager { fn get_consent(user_did: string) -> ConsentState }"
+    ]
+
+    rule "no_raw_stream_on_chain" {
+      description = "Raw EEG/BCI streams stay off-chain and off-public-logs; only bounded summaries or derived risk metrics are recorded."
+    }
+
+    rule "neurocustody_boundary_enforced" {
+      description = "The adapter exposes summary metrics and consent, never raw neural waveforms, device-level stimulation APIs, or firmware control."
+    }
+  }
+
+  module "aln_optivault_neurowallet" {
+    description = "ALN-native neuromorphic wallet profile supporting BCI-assisted UX, strict opt-in, and offline survivability."
+
+    features = [
+      "local_key_custody using secure elements, TPMs, TEEs, or neuromorphic co-processors; no server-side key storage.",
+      "BCI_assisted_confirmation where user readiness, attention, or fatigue can gate high-risk operations without replacing explicit consent.",
+      "multi_factor_default (BCI or biometric + knowledge factor + device binding)."
+    ]
+
+    api {
+      fn create_wallet(user_did: string, device_fingerprint: string) -> WalletId;
+      fn sign_tx(wallet: WalletId, tx_bytes: bytes, policy_context: bytes) -> Signature;
+      fn export_watch_only(wallet: WalletId) -> WatchConfig;
+      fn record_bci_opt_in(user_did: string, jurisdiction: string) -> ConsentArtifactId;
+      fn revoke_bci_opt_in(user_did: string, reason: string) -> ConsentArtifactId;
+    }
+
+    constraint "no_hidden_signing" {
+      description = "Every signature requires explicit confirmation via at least one human-perceivable channel (visual, audio, haptic) and logs an audit event."
+    }
+
+    constraint "bci_not_required" {
+      description = "Wallet must fully function without any BCI hardware; BCI is an enhancement path, not a dependency."
+    }
+  }
+
+  ######################################################################
+  ## 6. Opt-in / voice opt-out flows (BCI & neurowallet)
+  ######################################################################
+
+  opt_in_opt_out_model {
+    flow "enable_bci_wallet" {
+      steps = [
+        "User installs ALN neurowallet on a trusted device.",
+        "User explicitly activates BCI features via GUI/CLI, reviewing clear risk and privacy notices.",
+        "Wallet generates and signs BCI_OPT_IN artifact binding user_did, device_fingerprint, jurisdiction, and expiry.",
+        "Chain or off-chain verifiable log anchors the consent before any BCI-assisted operations are enabled."
+      ]
+    }
+
+    flow "disable_bci_wallet_via_voice" {
+      description = "Out-of-band voice command via trusted assistant triggers immediate BCI feature shutdown."
+
+      pseudo_api = """
+      POST /aln/neurowallet/bci-opt-out
+      {
+        user_did: string,
+        command_hash: bytes,         # e.g., hash('disable ALN BCI wallet now')
+        device_fingerprint: string,
+        auth_proof: bytes            # signature from assistant hardware key
+      }
+      """
+
+      behavior = [
+        "Set BCI_OPT_IN to REVOKED locally and on-chain as soon as connectivity exists.",
+        "Terminate BCI-dependent sessions and revert to non-BCI wallet mode.",
+        "Emit audit events for opt-out, including reason 'voice_command' and verifier identity."
+      ]
+    }
+
+    rule "opt_in_only" {
+      description = "BCI and neuromorphic capabilities are disabled by default and must be explicitly, revocably enabled."
+    }
+  }
+
+  ######################################################################
+  ## 7. Off-grid survivability and neurally grounded calls
+  ######################################################################
+
+  resilience_design {
+    goal "standalone_operation" {
+      description = "ALN must continue to operate under partial connectivity, local-only conditions, and grid instability."
+
+      strategies = [
+        "offline_signing_and_queueing of transactions with later broadcast.",
+        "light_clients_and_SPV_modes for constrained devices.",
+        "local_state_snapshots for balances and allowances with cryptographic anchoring."
+      ]
+    }
+
+    goal "off_grid_capable" {
+      description = "Augmented users can maintain secure neurowallet operations using local compute and intermittent connectivity."
+
+      features = [
+        "store_and_forward_relay_nodes to bridge intermittent networks.",
+        "deterministic_state_proofs that allow safe local reasoning about funds without always-online access.",
+        "hardware-level_emergency_lock (button/gesture/voice) that enforces wallet lockdown until explicit reset."
+      ]
+    }
+  }
+
+  neurally_grounded_calls {
+    principle = "User-owned resources evaluate local policy first, then escalate to chain-level policy; device checks add safety but never subtract it."
+
+    examples = [
+      "local_policy_precheck of tx risk before sending to ALN nodes.",
+      "cognitive_state_gating: if workload_index or fatigue_index exceed thresholds, local system delays or blocks high-risk actions.",
+      "hard_emergency_stop that sets the wallet into locked mode and marks subsequent on-chain events for review."
+    ]
+  }
+
+  ######################################################################
+  ## 8. Unreal / application integration (ledger-first)
+  ######################################################################
+
+  ue_integration {
+    guideline = "ALN is the authoritative ledger and policy engine; Unreal or other engines are visualization and interaction shells only."
+
+    for_plugins = [
+      "Use neurowallet APIs for signing; never store private keys in game engines.",
+      "Consume BCI summaries via bci_neuromorphic_adapter; do not implement direct EEG pipelines in plugins.",
+      "Respect opt-in/opt-out and neurocustody boundaries at all times."
+    ]
+  }
+
+  ######################################################################
+  ## 9. Copilot security generation profile (summary)
+  ######################################################################
+
+  copilot_generation_profile {
+    must_do = [
+      "Generate ALN modules in Rust/Go/TypeScript/ALN-WASM with explicit types, exhaustive error handling, and strict policy checks.",
+      "Model BCI features as optional, consent-based, and revocable, with strong audit logging.",
+      "Integrate formal tests (property-based, fuzzing) and if possible, spec-level invariants for consensus and critical contracts."
+    ]
+
+    must_not_do = [
+      "No direct neural stimulation, affect control, or subliminal pattern generation.",
+      "No hidden admin functions, secret keys, or undocumented bypasses.",
+      "No reliance on Keplr, Rabby, or similar external wallets for core ALN flows; ALN must be wallet-self-sufficient.",
+      "No code that weakens ALN isolation by importing external consensus or economic models."
+    ]
+
+    default_behavior = "When in doubt about safety or legality, deny the action, log it, and present a reviewable reason aligned with lawful, rights-preserving governance."
+  }
+}
