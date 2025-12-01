@@ -36,6 +36,7 @@ class CantoMigration {
 
     // TODO: Fetch contract code
     const code = '/* stub: actual Canto contract code */';
+    await this.mlHooks.loadSignatures();
     const score = this.mlHooks.scorePayload(code);
 
     const vulnerabilities = [];

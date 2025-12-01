@@ -89,6 +89,41 @@ describe('AugmentedPolicyEngine', () => {
     expect(policyEngine.requireLawEnfModeFor('DATA_ACCESS_LEVEL_X')).toBe(true);
     expect(policyEngine.requireLawEnfModeFor('ENHANCED_VISION')).toBe(false);
   });
+
+  test('validateTransaction enforces governance metadata', () => {
+    const tx = {
+      header: {
+        op_code: 'governance_vote',
+        from: 'aln1user',
+        to: 'aln1gov',
+        nonce: 1,
+        transcript_hash: 'a'.repeat(64)
+      },
+      data: {}
+    };
+
+    const result = policyEngine.validateTransaction(tx);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain('chat_context_id');
+  });
+
+  test('validateTransaction passes when metadata complete', () => {
+    const tx = {
+      header: {
+        op_code: 'governance_vote',
+        from: 'aln1user',
+        to: 'aln1gov',
+        nonce: 1,
+        chat_context_id: '550e8400-e29b-41d4-a716-446655440000',
+        transcript_hash: 'a'.repeat(64),
+        jurisdiction_tags: ['US_federal']
+      },
+      data: { proposal_id: 'prop', support: 'for' }
+    };
+
+    const result = policyEngine.validateTransaction(tx);
+    expect(result.allowed).toBe(true);
+  });
 });
 
 describe('ReputationSystem', () => {

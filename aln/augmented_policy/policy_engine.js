@@ -3,6 +3,13 @@
  * Enforces capability checks, energy budgets, and compliance modes
  */
 
+const {
+  MAX_CHAT_CONTEXT_ID_LENGTH,
+  MAX_TRANSCRIPT_HASH_LENGTH,
+  MAX_JURISDICTION_TAGS,
+  isValidJurisdiction
+} = require('../core/config/constants');
+
 class AugmentedPolicyEngine {
   constructor(reputationSystem, energyIntegration) {
     this.reputationSystem = reputationSystem;
@@ -15,6 +22,71 @@ class AugmentedPolicyEngine {
       ['SECURE_COMMS', { id: 'SECURE_COMMS', capabilityLevel: 'LAW_ENF_ASSIST' }],
       ['DATA_ACCESS_LEVEL_X', { id: 'DATA_ACCESS_LEVEL_X', capabilityLevel: 'LAW_ENF_ASSIST' }]
     ]);
+  }
+
+  /**
+   * Validate transaction metadata requirements before consensus admission
+   */
+  validateTransaction(chainlexeme) {
+    if (!chainlexeme || !chainlexeme.header) {
+      return { allowed: false, reason: 'Missing chainlexeme header' };
+    }
+
+    const { header } = chainlexeme;
+
+    const metaCheck = this._validateMetadata(header);
+    if (!metaCheck.allowed) {
+      return metaCheck;
+    }
+
+    switch (header.op_code) {
+      case 'governance_vote':
+      case 'governance_proposal':
+        if (!header.chat_context_id) {
+          return { allowed: false, reason: 'Governance transactions require chat_context_id' };
+        }
+        if (!header.transcript_hash) {
+          return { allowed: false, reason: 'Governance transactions require transcript_hash' };
+        }
+        break;
+      case 'migration_ingest':
+        if (!header.transcript_hash) {
+          return { allowed: false, reason: 'Migration ingest requires transcript_hash' };
+        }
+        break;
+      default:
+        break;
+    }
+
+    return { allowed: true };
+  }
+
+  _validateMetadata(header) {
+    if (header.chat_context_id && header.chat_context_id.length > MAX_CHAT_CONTEXT_ID_LENGTH) {
+      return { allowed: false, reason: 'chat_context_id exceeds allowed length' };
+    }
+
+    if (header.transcript_hash && header.transcript_hash.length > MAX_TRANSCRIPT_HASH_LENGTH) {
+      return { allowed: false, reason: 'transcript_hash exceeds allowed length' };
+    }
+
+    if (header.jurisdiction_tags) {
+      if (!Array.isArray(header.jurisdiction_tags)) {
+        return { allowed: false, reason: 'jurisdiction_tags must be array' };
+      }
+
+      if (header.jurisdiction_tags.length > MAX_JURISDICTION_TAGS) {
+        return { allowed: false, reason: 'jurisdiction_tags exceeds allowed length' };
+      }
+
+      for (const tag of header.jurisdiction_tags) {
+        if (!isValidJurisdiction(tag)) {
+          return { allowed: false, reason: `Invalid jurisdiction tag ${tag}` };
+        }
+      }
+    }
+
+    return { allowed: true };
   }
 
   /**

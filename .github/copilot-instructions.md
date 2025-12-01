@@ -56,6 +56,7 @@ ALN blockchain implementation with:
 ## Treasury & Constants
 
 - **Single Source of Truth**: Import `ALN_TREASURY_ADDRESS` and all protocol constants from `/aln/core/config/constants.ts`
+- **Governance Addresses**: Import `GOVERNANCE_ADDRESSES` and `GOVERNANCE_POLICY_TAGS` from `/aln/core/config/governance.js` instead of hard-coding council destinations
 - **NEVER** hard-code treasury addresses, gas limits, governance periods, or TPS targets
 - Use helper functions: `isTreasuryLive()`, `isValidJurisdiction(tag)`, `isValidTreasuryAddress(addr)`
 - Treasury is reserved; `ALN_TREASURY_LIVE = false` until mainnet genesis
@@ -69,6 +70,7 @@ ALN blockchain implementation with:
 - Parser WARNS if governance/migration ops lack `chat_context_id` or `transcript_hash`
 - State store captures metadata and appends audit records: `audit:<from>:<timestamp>:<op_code>`
 - Use `withChatMetadata(tx, meta)` helper in wallet builder
+- CLI: `aln tx` supports `--chat-context-id`, `--transcript-hash`, and `--jurisdiction-tags` plus custodian signing flags (`--custodian-root`, `--custodian-label`, `--custodian-passphrase-env`)
 
 ## Compliance Routing
 
@@ -105,8 +107,15 @@ ALN blockchain implementation with:
 
 - Malware domains: ransomware, keyloggers, drainers, phishing, supply_chain, logic_timebomb
 - All contracts/transactions pass through malware detection before commit
-- ML threat hooks: `loadSignatures()`, `scorePayload()`, `updatePolicies()`
+- ML threat hooks: `loadSignatures()`, `scorePayload()`, `updatePolicies()` now hydrate from `ThreatFeedIngestor` (file/HTTPS sources) with fallbacks
 - Quarantine workflow for flagged contracts; cannot deploy until cleared
+
+## Custodian & Signing
+
+- Wallet + CLI signing uses **Ed25519** (`@noble/ed25519`) via `signTx` / `verifyTxSignature`
+- Use `/aln/security/key_custodian.js` to encrypt validator/wallet keys at rest (AES-256-GCM + scrypt)
+- CLI custodian flags auto-create/load sealed keys and sign without exposing private material
+- Runtime policy/consensus MUST reject tx lacking required metadata before mempool admission (`AugmentedPolicyEngine.validateTransaction`)
 
 ## Token Creation Pipeline
 

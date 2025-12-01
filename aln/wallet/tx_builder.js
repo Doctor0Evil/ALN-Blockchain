@@ -5,6 +5,10 @@
  * Private keys never leave the browser.
  */
 
+const crypto = require('crypto');
+const { sync: ed25519 } = require('@noble/ed25519');
+const { GOVERNANCE_ADDRESSES } = require('../core/config/governance');
+
 /**
  * Build transfer transaction chainlexeme
  * @param {string} fromAddr - Sender address
@@ -48,7 +52,7 @@ function buildGovernanceProposalTx(proposer, proposalData) {
     header: {
       op_code: 'governance_proposal',
       from: proposer,
-      to: 'aln1governance000000000000000000000000000',
+      to: GOVERNANCE_ADDRESSES.COUNCIL,
       nonce: proposalData.nonce
     },
     data: {
@@ -84,7 +88,7 @@ function buildGovernanceVoteTx(voter, proposalId, support, nonce) {
     header: {
       op_code: 'governance_vote',
       from: voter,
-      to: 'aln1governance000000000000000000000000000',
+      to: GOVERNANCE_ADDRESSES.COUNCIL,
       nonce: nonce
     },
     data: {
@@ -118,40 +122,36 @@ function withChatMetadata(tx, meta = {}) {
 }
 
 /**
- * Sign transaction (mock implementation)
- * In production, use proper ed25519 signing with Web Crypto API
- * 
- * @param {Object} chainlexeme - Unsigned chainlexeme
- * @param {string} privateKey - Private key (never sent to server)
- * @returns {Object} Signed chainlexeme
+ * Compute signing digest (SHA-256 of header+data)
  */
-function signTx(chainlexeme, privateKey) {
-  // Mock signature generation
-  // In production: use crypto.subtle.sign with ed25519
-  
-  const message = JSON.stringify({
+function computeSigningDigest(chainlexeme) {
+  return crypto.createHash('sha256').update(JSON.stringify({
     header: chainlexeme.header,
     data: chainlexeme.data
-  });
-  
-  // Generate mock signature
-  const mockSignature = `ed25519:0x${hashMock(message + privateKey)}`;
-  
-  chainlexeme.footer.signature = mockSignature;
-  
-  return chainlexeme;
+  })).digest();
 }
 
 /**
- * Mock hash function (replace with actual crypto)
+ * Sign transaction using Ed25519
+ *
+ * @param {Object} chainlexeme - Unsigned chainlexeme
+ * @param {string} privateKeyHex - 64-char hex encoded private key
+ * @returns {Object} Signed chainlexeme
  */
-function hashMock(data) {
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    hash = ((hash << 5) - hash) + data.charCodeAt(i);
-    hash = hash & hash;
+function signTx(chainlexeme, privateKeyHex) {
+  if (!privateKeyHex) {
+    throw new Error('Private key required for signing');
   }
-  return Math.abs(hash).toString(16).padStart(64, '0').substring(0, 64);
+
+  const privateKey = Buffer.from(privateKeyHex, 'hex');
+  if (privateKey.length !== 32) {
+    throw new Error('Invalid private key length; expected 32 bytes');
+  }
+
+  const digest = computeSigningDigest(chainlexeme);
+  const signature = ed25519.sign(digest, privateKey);
+  chainlexeme.footer.signature = `ed25519:0x${Buffer.from(signature).toString('hex')}`;
+  return chainlexeme;
 }
 
 /**
@@ -159,8 +159,12 @@ function hashMock(data) {
  * In production: use proper ed25519 key derivation
  */
 function generateKeypairFromSeed(seed) {
-  const privateKey = hashMock(seed);
-  const publicKey = hashMock(privateKey);
+  const seedBuffer = crypto.createHash('sha512').update(seed).digest();
+  const privateKeyBytes = seedBuffer.subarray(0, 32);
+  const publicKeyBytes = ed25519.getPublicKey(privateKeyBytes);
+
+  const privateKey = Buffer.from(privateKeyBytes).toString('hex');
+  const publicKey = Buffer.from(publicKeyBytes).toString('hex');
   const address = `aln1${publicKey.substring(0, 40)}`;
   
   return {
@@ -173,17 +177,26 @@ function generateKeypairFromSeed(seed) {
 /**
  * Verify transaction signature (client-side verification)
  */
-function verifyTxSignature(chainlexeme) {
+function verifyTxSignature(chainlexeme, publicKeyHex) {
   if (!chainlexeme.footer.signature) {
     return { valid: false, error: 'No signature' };
   }
-  
-  if (!chainlexeme.footer.signature.startsWith('ed25519:')) {
+
+  if (!publicKeyHex) {
+    return { valid: false, error: 'Public key required for verification' };
+  }
+
+  if (!chainlexeme.footer.signature.startsWith('ed25519:0x')) {
     return { valid: false, error: 'Invalid signature format' };
   }
-  
-  // In production: verify ed25519 signature
-  return { valid: true };
+
+  const signatureHex = chainlexeme.footer.signature.replace('ed25519:0x', '');
+  const signature = Buffer.from(signatureHex, 'hex');
+  const publicKey = Buffer.from(publicKeyHex, 'hex');
+  const digest = computeSigningDigest(chainlexeme);
+  const valid = ed25519.verify(signature, digest, publicKey);
+
+  return valid ? { valid: true } : { valid: false, error: 'Signature verification failed' };
 }
 
 // Export for use in browser or Node.js
@@ -195,6 +208,7 @@ if (typeof module !== 'undefined' && module.exports) {
     withChatMetadata,
     signTx,
     generateKeypairFromSeed,
-    verifyTxSignature
+    verifyTxSignature,
+    computeSigningDigest
   };
 }

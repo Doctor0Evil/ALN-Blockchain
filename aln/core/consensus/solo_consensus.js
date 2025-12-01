@@ -11,9 +11,11 @@ const { verifyConservation, verifyLimits } = require('../safety/qpu_math_hooks')
 const EventEmitter = require('events');
 
 class SoloConsensus extends EventEmitter {
-  constructor(stateStore, config = {}) {
+  constructor(stateStore, options = {}) {
     super();
     this.stateStore = stateStore;
+    const { policyEngine = null, ...config } = options;
+    this.policyEngine = policyEngine;
     this.config = {
       blockTime: config.blockTime || 5000, // 5 seconds
       maxTxPerBlock: config.maxTxPerBlock || 1000,
@@ -99,6 +101,17 @@ class SoloConsensus extends EventEmitter {
         error: 'Invalid chainlexeme structure',
         details: validationReport.errors
       };
+    }
+
+    if (this.policyEngine) {
+      const policyResult = this.policyEngine.validateTransaction(chainlexeme);
+      if (!policyResult.allowed) {
+        return {
+          success: false,
+          error: 'Policy check failed',
+          details: policyResult.reason
+        };
+      }
     }
 
     // Verify safety constraints

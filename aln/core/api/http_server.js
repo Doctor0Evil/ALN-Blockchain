@@ -10,9 +10,12 @@ const { Logger } = require('../logging/logger');
 const { parseAlnDocument } = require('../runtime/aln_parser');
 
 class HttpServer {
-  constructor(consensus, stateStore, config = {}) {
+  constructor(consensus, stateStore, options = {}) {
     this.consensus = consensus;
     this.stateStore = stateStore;
+    const { policyEngine = null, energyIntegration = null, ...config } = options;
+    this.policyEngine = policyEngine;
+    this.energyIntegration = energyIntegration;
     this.config = {
       apiPort: config.apiPort || 3000,
       wsPort: config.wsPort || 3001,
@@ -110,6 +113,17 @@ class HttpServer {
           }
           if (req.body.jurisdiction_tags && !parsed.header.jurisdiction_tags) {
             parsed.header.jurisdiction_tags = req.body.jurisdiction_tags;
+          }
+        }
+
+        if (this.policyEngine) {
+          const policyResult = this.policyEngine.validateTransaction(parsed);
+          if (!policyResult.allowed) {
+            return res.status(400).json({
+              success: false,
+              error: 'Policy check failed',
+              details: policyResult.reason
+            });
           }
         }
 
@@ -217,6 +231,37 @@ class HttpServer {
           uptime_seconds: process.uptime()
         }
       });
+    });
+
+    // Policy endpoints
+    this.app.get('/policy/user/:did', (req, res) => {
+      if (!this.policyEngine) {
+        return res.status(503).json({ success: false, error: 'Policy engine unavailable' });
+      }
+      const policy = this.policyEngine.getEffectivePolicy(req.params.did);
+      res.json({ success: true, data: policy });
+    });
+
+    this.app.get('/energy/state/:did', (req, res) => {
+      if (!this.energyIntegration) {
+        return res.status(503).json({ success: false, error: 'Energy integration unavailable' });
+      }
+      const state = this.energyIntegration.getEnergyState(req.params.did);
+      res.json({ success: true, data: state });
+    });
+
+    this.app.post('/policy/check', (req, res) => {
+      if (!this.policyEngine) {
+        return res.status(503).json({ success: false, error: 'Policy engine unavailable' });
+      }
+      const { user, action_id: actionId, energy_state: runtimeEnergy } = req.body || {};
+      if (!user || !actionId) {
+        return res.status(400).json({ success: false, error: 'user and action_id required' });
+      }
+
+      const energyState = runtimeEnergy || this.energyIntegration?.getEnergyState(user);
+      const decision = this.policyEngine.isActionAllowed(user, actionId, energyState);
+      res.json({ success: true, data: decision });
     });
   }
 

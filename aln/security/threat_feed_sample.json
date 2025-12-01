@@ -1,0 +1,21 @@
+[
+  {
+    "pattern": "selfdestruct\\(",
+    "domain": "drainer",
+    "severity": "high",
+    "source": "baseline"
+  },
+  {
+    "pattern": "delegatecall",
+    "domain": "supply_chain",
+    "severity": "high",
+    "flags": "i",
+    "source": "baseline"
+  },
+  {
+    "pattern": "tx\\.origin",
+    "domain": "phishing",
+    "severity": "medium",
+    "source": "external"
+  }
+]

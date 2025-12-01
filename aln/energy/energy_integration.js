@@ -10,6 +10,13 @@ class EnergyIntegration {
   }
 
   /**
+   * Get cached energy state for a user
+   */
+  getEnergyState(user) {
+    return this.energyStates.get(user) || null;
+  }
+
+  /**
    * Update energy state
    */
   async updateEnergyState(user, cognitive, physical, gridDraw, devices) {

@@ -4,6 +4,9 @@
  */
 
 const { ALNParser } = require('../../core/runtime/aln_parser');
+const { GOVERNANCE_ADDRESSES } = require('../../core/config/governance');
+
+const GOVERNANCE_ADDRESS = GOVERNANCE_ADDRESSES.COUNCIL;
 
 describe('ALNParser - Module Syntax', () => {
   let parser;
@@ -48,7 +51,7 @@ chainlexeme {
   header: {
     op_code: "governance_vote",
     from: "aln1voter",
-    to: "aln1governance",
+    to: "${GOVERNANCE_ADDRESS}",
     nonce: 1
   },
   data: {
@@ -133,7 +136,7 @@ chainlexeme {
   header: {
     op_code: "governance_vote",
     from: "aln1voter",
-    to: "aln1governance",
+    to: "${GOVERNANCE_ADDRESS}",
     nonce: 1,
     chat_context_id: "550e8400-e29b-41d4-a716-446655440000",
     transcript_hash: "a".repeat(64),

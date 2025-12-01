@@ -3,23 +3,37 @@
  * Integrates with malware.aln policy
  */
 
+const { ThreatFeedIngestor } = require('./threat_feed');
+
+const FALLBACK_SIGNATURES = [
+  { pattern: /selfdestruct\(/i, domain: 'drainer', severity: 'high' },
+  { pattern: /delegatecall/i, domain: 'supply_chain', severity: 'high' },
+  { pattern: /tx\.origin/i, domain: 'phishing', severity: 'medium' }
+];
+
 class MLThreatHooks {
-  constructor() {
+  constructor(threatFeedIngestor = null) {
     this.signatures = [];
     this.lastUpdate = 0;
+    this.threatFeedIngestor = threatFeedIngestor || new ThreatFeedIngestor();
   }
 
   /**
    * Load malware signatures from registry or feed
    */
   async loadSignatures() {
-    // TODO: Fetch from secure threat intel feed or on-chain registry
-    // For now, stub with known patterns
-    this.signatures = [
-      { pattern: /selfdestruct\(/, domain: 'drainer', severity: 'high' },
-      { pattern: /delegatecall.*unknown/, domain: 'supply_chain', severity: 'high' },
-      { pattern: /balanceOf.*revert/, domain: 'drainer', severity: 'medium' }
-    ];
+    try {
+      if (this.threatFeedIngestor) {
+        const feedSignatures = await this.threatFeedIngestor.fetchSignatures();
+        this.signatures = feedSignatures.filter(Boolean);
+        this.lastUpdate = Date.now();
+        return this.signatures;
+      }
+    } catch (err) {
+      console.warn('[MLThreatHooks] Threat feed fetch failed, using fallback:', err.message);
+    }
+
+    this.signatures = FALLBACK_SIGNATURES;
     this.lastUpdate = Date.now();
     return this.signatures;
   }
@@ -55,7 +69,6 @@ class MLThreatHooks {
    * Update policies periodically
    */
   async updatePolicies() {
-    // TODO: Scheduled refresh (every N blocks or time interval)
     await this.loadSignatures();
   }
 }

@@ -184,6 +184,38 @@ class GovernanceSecurity {
 }
 ```
 
+### Threat Intelligence Layer
+
+**Objective**: Keep malware detection and compliance guardrails synchronized with external intel without blocking block production.
+
+| Control | Implementation | Standard Mapping |
+|---------|----------------|-----------------|
+| **Feed Aggregation** | `ThreatFeedIngestor` loads signed JSON feeds (file/HTTPS) and hydrates `MLThreatHooks` | JFMIP-24-01 §4.2 |
+| **Fallback Safety** | If feeds unavailable, revert to embedded signatures to avoid blind spots | ISO/IEC 27001 A.12.6 |
+| **Update Propagation** | `ml_hooks.updatePolicies()` refreshes token pipeline + migration scanners before scoring payloads | CSA CCM IVS-09 |
+
+```javascript
+async function refreshThreatIntel() {
+  const feed = new ThreatFeedIngestor({
+    sources: [
+      { type: 'https', url: 'https://intel.aln/payloads.json' },
+      { type: 'file', path: path.join(__dirname, 'threat_feed_sample.json') }
+    ]
+  });
+
+  const mlHooks = new MLThreatHooks(feed);
+  await mlHooks.updatePolicies();
+}
+```
+
+### Custodian Key Management
+
+**Objective**: Ensure validator and wallet signing keys remain encrypted-at-rest and never leave secure hardware.
+
+- `KeyCustodian` wraps AES-256-GCM + `scrypt` to seal Ed25519 keys under operator passphrases or enclave secrets
+- CLI flags `--custodian-root`, `--custodian-label`, `--custodian-passphrase-env` auto-create/load sealed keys before signing
+- Future HSM integration: replace local storage adapters while keeping same `signDigest()` interface
+
 ### 4. Dev-Tunnel Agent Module (20,000 TPS)
 
 **Threat Model**:

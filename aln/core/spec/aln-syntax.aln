@@ -64,6 +64,7 @@ example_2_content: |
   [header]
   op_code: governance_proposal
   from: aln1qpzry9x8gf2tvdw0s3jn54khce6mua7l5tgj3e
+  # Use GOVERNANCE_ADDRESSES.COUNCIL from aln/core/config/governance.js
   to: aln1governance000000000000000000000000000
   nonce: 15
 

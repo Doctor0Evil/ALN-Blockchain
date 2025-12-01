@@ -55,6 +55,7 @@ class TokenCreationPipeline {
     const rejectedReasons = [];
 
     // Malware scoring
+    await this.mlHooks.loadSignatures();
     const score = this.mlHooks.scorePayload(blueprint.code);
     if (score.score >= 50) {
       safe = false;

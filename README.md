@@ -314,6 +314,27 @@ When generating ALN code:
    npm run start:explorer
    ```
 
+### CLI Transaction Builder
+
+Use the node CLI to craft transactions with mandatory chat metadata and optional custodian-backed signing:
+
+```powershell
+# Transfer with metadata
+aln tx transfer --from <addr> --to <addr> --amount 10 --nonce 0 \
+   --chat-context-id 550e8400-e29b-41d4-a716-446655440000 \
+   --transcript-hash <sha256> --jurisdiction-tags US_federal
+
+# Governance vote
+aln tx governance-vote --from <addr> --proposal gov_001 --support for --nonce 1 \
+   --chat-context-id <uuid> --transcript-hash <sha256>
+
+# Optional encrypted custodian signing
+setx ALN_CUST_PASS "super-secret"
+aln tx transfer ... --custodian-root ./.aln_keys --custodian-label wallet1 --custodian-passphrase-env ALN_CUST_PASS
+```
+
+`KeyCustodian` seals Ed25519 keys with AES-256-GCM + scrypt, so the CLI can sign without exposing raw private material. Metadata flags align with `AugmentedPolicyEngine.validateTransaction`, ensuring governance and migration ops are rejected if context headers are missing.
+
 ---
 
 ## Documentation
@@ -325,6 +346,8 @@ When generating ALN code:
 - **GOVERNANCE.md** – Proposal requirements, voting, execution
 - **TPS_TARGETS.md** – Module-level throughput targets
 - **SECURITY_TPS.md** – Security constraints and TPS engineering
+- **docs/policy_mapping.md** – Mapping of ALN policies to runtime modules, CLI, and tests
+- **docs/ci_checklist.md** – Canonical checklist for CI jobs covering governance, keys, and threat feeds
 
 ---
 
