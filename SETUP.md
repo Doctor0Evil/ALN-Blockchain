@@ -194,6 +194,86 @@ npm run test:unit --workspace=aln/tests
 node aln\tools\aln_linter.js aln\
 ```
 
+## 🛠️ Building WASM Artifacts (Contracts)
+
+Prerequisites:
+- Rust toolchain (stable) with wasm target: `rustup target add wasm32-unknown-unknown`
+- wasm-opt (binaryen): install via `sudo apt-get install -y binaryen` on Ubuntu, or `choco install binaryen` on Windows if using Chocolatey.
+
+Build & optimize contracts locally:
+```powershell
+# build all contract crates for wasm
+cd 'c:\Users\Hunter\Repos\ALN+Blockchain'
+rustup target add wasm32-unknown-unknown
+cargo build --release --target wasm32-unknown-unknown -p aln_auet
+cargo build --release --target wasm32-unknown-unknown -p aln_csp
+cargo build --release --target wasm32-unknown-unknown -p aln_registry
+cargo build --release --target wasm32-unknown-unknown -p aln_bridge
+cargo build --release --target wasm32-unknown-unknown -p energy_router
+
+# optimize
+wasm-opt -Oz -o artifacts/aln_auet.optimized.wasm target/wasm32-unknown-unknown/release/aln_auet.wasm
+wasm-opt -Oz -o artifacts/aln_csp.optimized.wasm target/wasm32-unknown-unknown/release/aln_csp.wasm
+wasm-opt -Oz -o artifacts/aln_registry.optimized.wasm target/wasm32-unknown-unknown/release/aln_registry.wasm
+wasm-opt -Oz -o artifacts/aln_bridge.optimized.wasm target/wasm32-unknown-unknown/release/aln_bridge.wasm
+wasm-opt -Oz -o artifacts/energy_router.optimized.wasm target/wasm32-unknown-unknown/release/energy_router.wasm
+
+# compute provenance
+cargo build -p did_provenance --release
+./target/release/did_provenance prove-wasm artifacts/aln_auet.wasm aln_auet
+
+```
+
+## WASM Size & Gas Analysis
+
+After building and optimizing WASM artifacts, run the analysis to measure size and ensure artifacts fit threshold:
+
+```powershell
+# default threshold 2 MiB
+cargo build -p wasm_analysis --release
+.
+	arget\release\wasm_analysis artifacts 2097152
+```
+
+If any artifact exceeds the threshold, consider using additional code-splitting or off-chain verification to reduce on-chain verification costs. For gas estimation and more precise checks, run benchmarks (see `rust-benchmarks`) and consider deploying to a local test chain to measure gas consumption on execution.
+
+
+The CI runs the above and stores artifacts in the `artifacts/` folder. The `artifacts/` folder contains the following files per contract:
+- `artifacts/<crate>.wasm` - the unoptimized wasm file
+- `artifacts/<crate>.optimized.wasm` - the wasm-opt optimized file
+- `artifacts/<crate>.provenance.json` - DID + hash + git commit provenance
+
+## CI Merge Gates
+We require the following CI jobs to pass before merges to `main`:
+- `ubs-policy`
+- `did-admin-check`
+- `rust-integration`
+- `wasm-artifacts`
+- `indexer-tests` (when indexer-related changes are present)
+
+Review `CI.md` for instructions on configuring branch protection.
+
+
+### Rust cw-multi-test Integration Tests (Rust/CosmWasm)
+
+Run the cw-multi-test integration tests which validate cross-contract claim & spend flows.
+
+```powershell
+# Windows (PowerShell)
+.
+\scripts\test_all.ps1
+
+# Unix-like (bash)
+./scripts/test_all.sh
+```
+
+If you prefer running the Rust tests alone:
+
+```powershell
+cd tests/integration
+cargo test --manifest-path Cargo.toml --verbose
+```
+
 ## 📚 Documentation
 
 - **API Reference**: See `README.aln.md`

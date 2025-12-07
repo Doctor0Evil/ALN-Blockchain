@@ -1,0 +1,14 @@
+[package]
+name = "aln_tools"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.2", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+hex = "0.4"
+anyhow = "1.0"
+csv = "1.1"
+serde_yaml = "0.9"

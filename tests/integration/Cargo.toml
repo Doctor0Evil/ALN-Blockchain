@@ -1,0 +1,19 @@
+[package]
+name = "aln_integration_tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cw-multi-test = "0.14"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+sha2 = "0.10"
+hex = "0.4"
+
+# local path dependencies to the contracts
+aln_auet = { path = "../../contracts/auet" }
+aln_csp = { path = "../../contracts/aln20_csp" }
+aln_registry = { path = "../../contracts/aln_registry" }
+aln_bridge = { path = "../../contracts/bridge" }
+energy_router = { path = "../../contracts/energy_router" }

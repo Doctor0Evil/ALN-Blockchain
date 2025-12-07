@@ -19,6 +19,11 @@ jobs:
         with:
           node-version: '18'
           
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
         run: npm ci
         
@@ -31,6 +36,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    needs: [ubs-policy]
     
     steps:
       - uses: actions/checkout@v3
@@ -40,6 +46,11 @@ jobs:
         with:
           node-version: '18'
           
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
         run: npm ci
         
@@ -70,7 +81,7 @@ jobs:
   integration:
     name: Integration Test
     runs-on: ubuntu-latest
-    needs: [lint, test, build]
+    needs: [lint, test, build, did-admin-check]
     
     steps:
       - uses: actions/checkout@v3
@@ -94,3 +105,204 @@ jobs:
         run: |
           curl http://localhost:3000/status || exit 1
           curl http://localhost:3000/health || exit 1
+
+  rust-integration:
+    name: Rust Integration Tests
+    runs-on: ubuntu-latest
+    needs: [integration]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Install Rust dependencies
+        run: |
+          # Build workspace to download dependencies
+          cargo build --workspace --locked
+
+      - name: Cache cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/bin
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Run cw-multi-test integration tests
+        run: |
+          cd tests/integration
+          cargo test --manifest-path Cargo.toml --verbose
+
+  ubs-policy:
+    name: UBS Analyzer Policy
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v3
+
+        - name: Setup Rust toolchain
+          uses: actions-rs/toolchain@v1
+          with:
+            toolchain: stable
+
+        - name: Run UBS analyzer on contracts
+          run: |
+            # Generate UBS report artifacts for each contract wasm source
+            mkdir -p artifacts
+            for f in $(ls contracts/*/src | awk -F/ '{print $2}' | uniq); do
+              echo "Running UBS analyzer for $f"
+              # Use contract dir name as denom; analyzer will produce artifacts/ubs_report_$f.json
+              cargo run -p ubs_analyzer -- $f contracts/$f/src/main.rs || true
+            done
+            # Compute and display hash for each UBS report
+            for f in artifacts/ubs_report_*; do
+              if [ -f "$f" ]; then
+                echo "Hash for $f";
+                cargo run -p ubs_analyzer -- print-hash "$f" || true;
+              fi;
+            done
+            ls -la artifacts || true
+
+  wasm-artifacts:
+      name: Build WASM Artifacts + Optimize
+      runs-on: ubuntu-latest
+      needs: [rust-integration, ubs-policy]
+      steps:
+        - uses: actions/checkout@v3
+
+        - name: Cache cargo registry & build
+          uses: actions/cache@v4
+          with:
+            path: |
+              ~/.cargo/registry
+              ~/.cargo/bin
+              target
+            key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+            restore-keys: ${{ runner.os }}-cargo-
+
+        - name: Setup Rust toolchain
+          uses: actions-rs/toolchain@v1
+          with:
+            toolchain: stable
+            components: clippy, rustfmt
+
+        - name: Add wasm32 target
+          run: rustup target add wasm32-unknown-unknown
+
+        - name: Install wasm-opt (binaryen)
+          run: sudo apt-get update && sudo apt-get install -y binaryen
+
+        - name: Build contract WASM files
+          run: |
+            set -e
+            mkdir -p artifacts
+            # build all contract crates for wasm32
+            cargo build --release --target wasm32-unknown-unknown -p aln_auet
+            cargo build --release --target wasm32-unknown-unknown -p aln_csp
+            cargo build --release --target wasm32-unknown-unknown -p aln_registry
+            cargo build --release --target wasm32-unknown-unknown -p aln_bridge
+            cargo build --release --target wasm32-unknown-unknown -p energy_router
+            # move artifacts to artifacts/ with deterministic names
+            cp target/wasm32-unknown-unknown/release/aln_auet.wasm artifacts/aln_auet.wasm
+            cp target/wasm32-unknown-unknown/release/aln_csp.wasm artifacts/aln_csp.wasm
+            cp target/wasm32-unknown-unknown/release/aln_registry.wasm artifacts/aln_registry.wasm
+            cp target/wasm32-unknown-unknown/release/aln_bridge.wasm artifacts/aln_bridge.wasm
+            cp target/wasm32-unknown-unknown/release/energy_router.wasm artifacts/energy_router.wasm
+
+        - name: Optimize artifacts with wasm-opt
+          run: |
+            wasm-opt -Oz -o artifacts/aln_auet.optimized.wasm artifacts/aln_auet.wasm || true
+            wasm-opt -Oz -o artifacts/aln_csp.optimized.wasm artifacts/aln_csp.wasm || true
+            wasm-opt -Oz -o artifacts/aln_registry.optimized.wasm artifacts/aln_registry.wasm || true
+            wasm-opt -Oz -o artifacts/aln_bridge.optimized.wasm artifacts/aln_bridge.wasm || true
+            wasm-opt -Oz -o artifacts/energy_router.optimized.wasm artifacts/energy_router.wasm || true
+
+        - name: Generate provenance artifacts
+          run: |
+            cargo build -p did_provenance --release
+            ./target/release/did_provenance prove-wasm artifacts/aln_auet.wasm aln_auet || true
+            ./target/release/did_provenance prove-wasm artifacts/aln_csp.wasm aln_csp || true
+            ./target/release/did_provenance prove-wasm artifacts/aln_registry.wasm aln_registry || true
+            ./target/release/did_provenance prove-wasm artifacts/aln_bridge.wasm aln_bridge || true
+            ./target/release/did_provenance prove-wasm artifacts/energy_router.wasm energy_router || true
+
+        - name: Run wasm size analysis
+          run: |
+            cargo build -p wasm_analysis --release
+            ./target/release/wasm_analysis artifacts 2097152 || true
+
+        - name: Upload artifacts
+          uses: actions/upload-artifact@v4
+          with:
+            name: wasm-artifacts
+            path: artifacts
+
+    rust-benchmarks:
+      name: Rust Benchmarks (periodic)
+      runs-on: ubuntu-latest
+      if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+      steps:
+        - uses: actions/checkout@v3
+        - name: Setup Rust
+          uses: actions-rs/toolchain@v1
+          with: { toolchain: stable }
+        - name: Run benches
+          run: |
+            cargo bench -p aln_bridge -- --nocapture
+
+  indexer-tests:
+    name: Indexer Tests
+    runs-on: ubuntu-latest
+    needs: [rust-integration]
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: aln_indexer_test
+        ports:
+          - 5432:5432
+        options: >
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Setup Postgres client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          until pg_isready --host=localhost --port=5432; do sleep 1; done
+      - name: Run indexer unit tests
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/aln_indexer_test
+        run: |
+          # If you have migrations, run them here (placeholder) and then test indexer
+          # e.g., sqlx migrate run - if using sqlx
+          cargo test -p aln_indexer -- --nocapture
+
+    did-admin-check:
+      name: DID Admin Check
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v3
+        - name: Setup Rust toolchain
+          uses: actions-rs/toolchain@v1
+          with:
+            toolchain: stable
+        - name: Run did admin check
+          env:
+            ALN_OPERATOR_DID: "did:ion:EXAMPLEOPERATOR"
+          run: |
+            cargo run -p did_provenance -- did-admin-check || exit 1

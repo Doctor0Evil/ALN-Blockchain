@@ -1,0 +1,21 @@
+[package]
+name = "aln_bridge"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+cosmwasm-std = "0.19"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+cw20 = "0.14"
+cw-storage-plus = "0.11"
+sha2 = "0.10"
+hex = "0.4"
+aln_registry = { path = "../aln_registry" }
+
+[dev-dependencies]
+cosmwasm-std = { version = "0.19", features = ["test"] }
+criterion = "0.4"

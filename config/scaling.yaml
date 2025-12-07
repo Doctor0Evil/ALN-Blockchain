@@ -1,0 +1,17 @@
+# scaling config: source decimals, ALN decimals, compression factors
+decimals:
+  source_defaults: 6
+  aln_decimals: 6
+compression:
+  energy: 1e-12
+  strategy: 5e-13
+profiles:
+  malicious_cleanup:
+    c_e: 1e-12
+    c_s: 5e-13
+  legacy_bluechip:
+    c_e: 1e-6
+    c_s: 5e-7
+  user_opt_in_energy:
+    c_e: 1e-8
+    c_s: 5e-9
