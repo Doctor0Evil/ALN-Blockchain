@@ -138,6 +138,9 @@ jobs:
         run: |
           cd tests/integration
           cargo test --manifest-path Cargo.toml --verbose
+      - name: Run CEM tests
+        run: |
+          cargo test -p cem -- --nocapture
 
   ubs-policy:
     name: UBS Analyzer Policy
@@ -284,13 +287,141 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
           until pg_isready --host=localhost --port=5432; do sleep 1; done
-      - name: Run indexer unit tests
+      - name: Run indexer unit tests & fixtures
         env:
           DATABASE_URL: postgres://postgres:password@localhost:5432/aln_indexer_test
         run: |
-          # If you have migrations, run them here (placeholder) and then test indexer
-          # e.g., sqlx migrate run - if using sqlx
+          set -e
+          # Apply global schema and migrations
+          psql -U postgres -d aln_indexer_test -f db/schema.sql
+          psql -U postgres -d aln_indexer_test -f db/retention_compaction.sql
+          psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V1__init.sql
+          psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V2__rollup_unique_index.sql
+          psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V3__tx_and_indexer_state.sql
+          # Load fixtures
+          psql -U postgres -d aln_indexer_test -f crates/aln_indexer/fixtures/fixture.sql
+          # Run the tests
           cargo test -p aln_indexer -- --nocapture
+
+  indexer-replay-smoke:
+    name: Indexer Replay Smoke Test
+    runs-on: ubuntu-latest
+    needs: [indexer-tests]
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: aln_indexer_test
+        ports:
+          - 5432:5432
+        options: >
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Wait for Postgres
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          until pg_isready --host=localhost --port=5432; do sleep 1; done
+      - name: Apply migrations & seed simple blocks
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/aln_indexer_test
+        run: |
+          set -e
+          psql -U postgres -d aln_indexer_test -f db/schema.sql
+          psql -U postgres -d aln_indexer_test -f db/retention_compaction.sql
+          psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V1__init.sql
+          psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V2__rollup_unique_index.sql
+          psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V3__tx_and_indexer_state.sql
+          # seed canonical blocks 1..20
+          psql -U postgres -d aln_indexer_test -c "INSERT INTO blocks (height, hash, parent_hash, indexed_at, is_canonical) VALUES (1, 'h1','h0',now(),true) ON CONFLICT DO NOTHING;"
+          for i in $(seq 2 20); do psql -U postgres -d aln_indexer_test -c "INSERT INTO blocks (height, hash, parent_hash, indexed_at, is_canonical) VALUES ($i, 'h${i}', 'h$((i-1))', now(), true) ON CONFLICT DO NOTHING;"; done
+      - name: Start mock RPC server and run ReplayFrom
+        run: |
+          cat > mock_rpc.js <<'EOF'
+          const http = require('http');
+          const url = require('url');
+          const port = 26657;
+          const server = http.createServer((req, res) => {
+            const q = url.parse(req.url, true);
+            if (q.pathname === '/status') {
+              res.writeHead(200, {'Content-Type': 'application/json'});
+              res.end(JSON.stringify({ result: { sync_info: { latest_block_height: '25' } } }));
+              return;
+            }
+            if (q.pathname === '/block') {
+              const height = q.query.height || '1';
+              const h = parseInt(height, 10);
+              const hash = (h >= 11) ? `h${h}b` : `h${h}`;
+              const lastHash = `h${Math.max(1,h-1)}`;
+              const result = { block_id: { hash }, block: { header: { height: height.toString(), last_block_id: { hash: lastHash } }, data: { txs: null } } };
+              res.writeHead(200, {'Content-Type': 'application/json'});
+              res.end(JSON.stringify({ result }));
+              return;
+            }
+            res.writeHead(404);
+            res.end();
+          });
+          server.listen(port);
+          EOF
+          node mock_rpc.js &
+          sleep 1
+          # Run replay to pick up new branch
+          cargo run -p aln_indexer -- ReplayFrom --chain-id 1 --from-height 11 --rpc-endpoint http://127.0.0.1:26657
+      - name: Validate DB after replay
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/aln_indexer_test
+        run: |
+          set -e
+          # canonical blocks >= 11 should exist with suffix 'b'
+          COUNT=$(psql -U postgres -d aln_indexer_test -t -c "SELECT COUNT(*) FROM blocks WHERE is_canonical = true AND height >= 11 AND hash LIKE 'h%b'")
+          if [ "$COUNT" -lt "15" ]; then echo "Expected >=15 canonical blocks with suffix b, got $COUNT"; exit 1; fi
+
+  cem-metrics-smoke:
+    name: CEM Metrics Smoke Test
+    runs-on: ubuntu-latest
+    needs: [rust-integration]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Build CEM binary
+        run: |
+          set -e
+          cargo build -p cem --release
+      - name: Create sample dataset
+        run: |
+          cat > sample.json <<'EOF'
+          [
+            {"timestamp_ns":1,"subject_id":1,"session_id":1,"segment_id":"s1","ax":0.1,"ay":0.0,"az":0.0,"gx":0.1,"gy":0.0,"gz":0.0,"mx":0.0,"my":0.0,"mz":0.0,"f_normal":1.0,"f_tangential":0.0,"event_count":1.0,"event_polarity_mean":0.0,"eeg_band_power":[0.1],"emg_rms":0.1,"p_mw_measured":10.0},
+            {"timestamp_ns":2,"subject_id":1,"session_id":1,"segment_id":"s2","ax":0.2,"ay":0.0,"az":0.0,"gx":0.2,"gy":0.0,"gz":0.0,"mx":0.0,"my":0.0,"mz":0.0,"f_normal":1.0,"f_tangential":0.0,"event_count":1.0,"event_polarity_mean":0.0,"eeg_band_power":[0.1],"emg_rms":0.1,"p_mw_measured":12.0},
+            {"timestamp_ns":3,"subject_id":1,"session_id":1,"segment_id":"s3","ax":0.3,"ay":0.0,"az":0.0,"gx":0.3,"gy":0.0,"gz":0.0,"mx":0.0,"my":0.0,"mz":0.0,"f_normal":1.0,"f_tangential":0.0,"event_count":1.0,"event_polarity_mean":0.0,"eeg_band_power":[0.1],"emg_rms":0.1,"p_mw_measured":14.0},
+            {"timestamp_ns":4,"subject_id":1,"session_id":1,"segment_id":"s4","ax":0.4,"ay":0.0,"az":0.0,"gx":0.4,"gy":0.0,"gz":0.0,"mx":0.0,"my":0.0,"mz":0.0,"f_normal":1.0,"f_tangential":0.0,"event_count":1.0,"event_polarity_mean":0.0,"eeg_band_power":[0.1],"emg_rms":0.1,"p_mw_measured":16.0},
+            {"timestamp_ns":5,"subject_id":1,"session_id":1,"segment_id":"s5","ax":0.5,"ay":0.0,"az":0.0,"gx":0.5,"gy":0.0,"gz":0.0,"mx":0.0,"my":0.0,"mz":0.0,"f_normal":1.0,"f_tangential":0.0,"event_count":1.0,"event_polarity_mean":0.0,"eeg_band_power":[0.1],"emg_rms":0.1,"p_mw_measured":18.0}
+          ]
+          EOF
+      - name: Start CEM with metrics enabled
+        run: |
+          ./target/release/cem --subject 1 --session 1 --input sample.json --metrics-addr 127.0.0.1:9889 &
+          sleep 2
+      - name: Curl metrics and verify
+        run: |
+          curl -f http://127.0.0.1:9889/metrics | grep cem_calibrations_total
 
     did-admin-check:
       name: DID Admin Check
