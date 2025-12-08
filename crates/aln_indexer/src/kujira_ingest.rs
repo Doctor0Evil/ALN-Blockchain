@@ -1,5 +1,6 @@
 use anyhow::{Result, Context};
 use crate::db_postgres::{Db, BlockHeader};
+use serde_json::Value;
 use reqwest::Client;
 use std::time::Duration;
 
@@ -43,6 +44,168 @@ pub async fn ingest_kujira_chain<D: Db + Sync + Send + 'static>(pool: &sqlx::PgP
             if let Some(m) = &metrics {
                 m.write().await.indexed_blocks_total.inc();
                 m.write().await.indexer_head_height.set(height as i64);
+                // Check tx payloads for bridge events
+                for tx in txs.iter() {
+                    if tx.contains("RefactoredAsset") || tx.contains("claim_refactored") || tx.contains("action\":\"claim\"") {
+                        m.write().await.aln_bridge_events_total.inc();
+                    }
+                    if tx.contains("\"toxic\":true") {
+                    if tx.contains("claim_refactored") {
+                        m.write().await.sealed_refactor_total.inc();
+                    }
+                    if tx.contains("claim_rejected") || tx.contains("refactor_rejected") {
+                        m.write().await.sealed_refactor_rejected_total.inc();
+                    }
+                        // optimistic parsing: increment toxic gauge by 1 (use real amount parsing in production)
+                        let cur = m.write().await.aln_energy_toxic_total.get();
+                        m.write().await.aln_energy_toxic_total.set(cur + 1);
+                    }
+                    if tx.contains("\"toxic\":false") {
+                        let cur = m.write().await.aln_energy_clean_total.get();
+                        m.write().await.aln_energy_clean_total.set(cur + 1);
+                    }
+                }
+            }
+
+            // parse tx payloads to index token classes and mints/burns
+            for txraw in txs.iter() {
+                // try parse JSON representation
+                if let Ok(val) = serde_json::from_str::<Value>(txraw) {
+                    // recursively search for register_asset payload
+                    fn find_register_asset(v: &Value) -> Option<&Value> {
+                        match v {
+                            Value::Object(map) => {
+                                if map.contains_key("register_asset") { return Some(&map["register_asset"]); }
+                                for (_k, vv) in map.iter() {
+                                    if let Some(found) = find_register_asset(vv) { return Some(found); }
+                                }
+                                None
+                            }
+                            Value::Array(arr) => {
+                                for item in arr.iter() { if let Some(found) = find_register_asset(item) { return Some(found); } }
+                                None
+                            }
+                            _ => None
+                        }
+                    }
+
+                    if let Some(reg) = find_register_asset(&val) {
+                        // `reg` is an object that contains `asset: { ... }` structure
+                        if let Some(asset) = reg.get("asset") {
+                            let id = asset.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
+                            let source_denom = asset.get("source_denom").and_then(|v| v.as_str()).unwrap_or("");
+                            let name = source_denom; // fallback, contract may not set a name field
+                            let symbol = source_denom;
+                            let params_json = asset.to_string();
+                            let creator = "registry";
+                            let is_transferable = true;
+                            // insert token class
+                            let _ = db_impl.insert_token_class(id, name, symbol, &params_json, creator, is_transferable).await;
+                        }
+                    }
+
+                    // detect mint or burn messages referencing class_id
+                    fn find_mint_burn(v: &Value) -> Option<(String, String, String)> {
+                        match v {
+                            Value::Object(map) => {
+                                if map.contains_key("mint") {
+                                    // mint may have class_id and amount under mint
+                                    let m = &map["mint"];
+                                    let class_id = m.get("class_id").and_then(|s| s.as_str()).unwrap_or("").to_string();
+                                    let amt = m.get("amount").and_then(|s| s.as_str()).unwrap_or("0").to_string();
+                                    return Some(("mint".to_string(), class_id, amt));
+                                }
+                                if map.contains_key("burn") {
+                                    let m = &map["burn"];
+                                    let class_id = m.get("class_id").and_then(|s| s.as_str()).unwrap_or("").to_string();
+                                    let amt = m.get("amount").and_then(|s| s.as_str()).unwrap_or("0").to_string();
+                                    return Some(("burn".to_string(), class_id, amt));
+                                }
+                                for (_k, vv) in map.iter() { if let Some(found) = find_mint_burn(vv) { return Some(found); } }
+                                None
+                            }
+                            Value::Array(arr) => {
+                                for item in arr.iter() { if let Some(found) = find_mint_burn(item) { return Some(found); } }
+                                None
+                            }
+                            _ => None
+                        }
+                    }
+
+                    if let Some((action, class_id, amt)) = find_mint_burn(&val) {
+                        if class_id != "" {
+                            if action == "mint" {
+                                let _ = db_impl.record_class_mint(&class_id, &amt, b.height).await;
+                                if let Some(m) = &metrics {
+                                    if let Ok(n) = amt.parse::<u64>() {
+                                        m.write().await.class_mint_total.with_label_values(&[&class_id]).inc_by(n);
+                                    } else {
+                                        m.write().await.class_mint_total.with_label_values(&[&class_id]).inc();
+                                    }
+                                }
+                            } else if action == "burn" {
+                                let _ = db_impl.record_class_burn(&class_id, &amt, b.height).await;
+                                if let Some(m) = &metrics {
+                                    if let Ok(n) = amt.parse::<u64>() {
+                                        m.write().await.class_burn_total.with_label_values(&[&class_id]).inc_by(n);
+                                    } else {
+                                        m.write().await.class_burn_total.with_label_values(&[&class_id]).inc();
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // detect burn messages (we reused find_mint_burn for both)
+                    // detect toxic flag in asset payload (if present) and mark class
+                    fn find_toxic(v: &Value) -> Option<(String,bool)> {
+                        match v {
+                            Value::Object(map) => {
+                                if map.contains_key("toxic") && map.contains_key("class_id") {
+                                    let class_id = map.get("class_id").and_then(|s| s.as_str()).unwrap_or("").to_string();
+                                    let t = map.get("toxic").and_then(|s| s.as_bool()).unwrap_or(false);
+                                    return Some((class_id, t));
+                                }
+                                for (_k, vv) in map.iter() { if let Some(found) = find_toxic(vv) { return Some(found); } }
+                                None
+                            }
+                            Value::Array(arr) => {
+                                for item in arr.iter() { if let Some(found) = find_toxic(item) { return Some(found); } }
+                                None
+                            }
+                            _ => None
+                        }
+                    }
+
+                    if let Some((class_id, t)) = find_toxic(&val) {
+                        if class_id != "" {
+                            let _ = db_impl.set_class_toxic(&class_id, t).await;
+                            if let Some(m) = &metrics {
+                                m.write().await.class_toxic_gauge.with_label_values(&[&class_id]).set(if t { 1 } else { 0 });
+                            }
+                        }
+                    }
+                } else {
+                    // fallback: heuristic string-search detection
+                    if txraw.contains("register_asset") {
+                        // best-effort id extraction
+                        if let Some(start) = txraw.find("\"id\":") {
+                            let s = &txraw[start+6..];
+                            if let Some(end) = s.find('"') {
+                                let id = s[0..end].trim_matches('"');
+                                let _ = db_impl.insert_token_class(id, id, id, "{}", "registry", true).await;
+                            }
+                        }
+                    }
+                    if txraw.contains("\"mint\"") && txraw.contains("class_id") {
+                        // naive parse: find class_id and amount tokens
+                        if let Some(start) = txraw.find("class_id") {
+                            let s = &txraw[start..];
+                            if let Some(cid_start) = s.find(':') { let s2 = &s[cid_start+1..]; if let Some(q) = s2.find('"') { let cid = &s2[q+1..]; if let Some(q2) = cid.find('"') { let class_id = &cid[..q2]; let _ = db_impl.record_class_mint(class_id, "0", b.height).await; } } }
+                        }
+                    }
+                }
+            }
             }
 
             next_height += 1;

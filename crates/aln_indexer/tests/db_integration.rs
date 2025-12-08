@@ -37,4 +37,26 @@ mod db_tests {
 
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_token_class_and_mint_burn_flow() -> AnyResult<()> {
+        let pool = setup_pool().await?;
+        let db = PostgresDb::new(pool.clone());
+        // insert token class
+        db.insert_token_class("aln-test", "Test Token", "TST", "{}", "creator", true).await?;
+        // record mint
+        db.record_class_mint("aln-test", "100", 10).await?;
+        // record burn
+        db.record_class_burn("aln-test", "25", 11).await?;
+        // mark toxic
+        db.set_class_toxic("aln-test", true).await?;
+        // validate rows
+        let count: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM token_class WHERE class_id = 'aln-test'").fetch_one(&pool).await?;
+        assert_eq!(count, 1);
+        let minted: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM class_mint WHERE class_id = 'aln-test'").fetch_one(&pool).await?;
+        assert_eq!(minted, 2); // we inserted both mint and burn rows in class_mint table as history
+        let toxic: bool = sqlx::query_scalar!("SELECT toxic FROM class_stats WHERE class_id = 'aln-test'").fetch_one(&pool).await?;
+        assert!(toxic);
+        Ok(())
+    }
 }

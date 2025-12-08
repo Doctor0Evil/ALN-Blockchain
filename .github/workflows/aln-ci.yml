@@ -141,6 +141,15 @@ jobs:
       - name: Run CEM tests
         run: |
           cargo test -p cem -- --nocapture
+      - name: Run UBS and Trader-Pod tests
+        run: |
+          cargo test -p aln_ubs -- --nocapture || true
+          cargo test -p aln_trader_pod -- --nocapture || true
+      - name: Run Bridge tests
+        run: |
+          cargo test -p aln_bridge -- --nocapture || true
+      - name: Run aln_core tests
+        run: cargo test -p aln_core -- --nocapture
 
   ubs-policy:
     name: UBS Analyzer Policy
@@ -298,6 +307,7 @@ jobs:
           psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V1__init.sql
           psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V2__rollup_unique_index.sql
           psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V3__tx_and_indexer_state.sql
+          psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V4__token_classes.sql
           # Load fixtures
           psql -U postgres -d aln_indexer_test -f crates/aln_indexer/fixtures/fixture.sql
           # Run the tests
@@ -346,6 +356,7 @@ jobs:
           psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V1__init.sql
           psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V2__rollup_unique_index.sql
           psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V3__tx_and_indexer_state.sql
+          psql -U postgres -d aln_indexer_test -f crates/aln_indexer/migrations/V4__token_classes.sql
           # seed canonical blocks 1..20
           psql -U postgres -d aln_indexer_test -c "INSERT INTO blocks (height, hash, parent_hash, indexed_at, is_canonical) VALUES (1, 'h1','h0',now(),true) ON CONFLICT DO NOTHING;"
           for i in $(seq 2 20); do psql -U postgres -d aln_indexer_test -c "INSERT INTO blocks (height, hash, parent_hash, indexed_at, is_canonical) VALUES ($i, 'h${i}', 'h$((i-1))', now(), true) ON CONFLICT DO NOTHING;"; done

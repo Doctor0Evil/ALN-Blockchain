@@ -1,5 +1,5 @@
 [package]
-name = "aln_bridge"
+name = "ubs_oracle"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,15 +10,11 @@ crate-type = ["cdylib"]
 cosmwasm-std = "0.19"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-cw20 = "0.14"
-cw-storage-plus = "0.11"
-sha2 = "0.10"
+cw2 = "0.11"
+cw_storage_plus = "0.11"
+thiserror = "1.0"
+anyhow = "1.0"
 hex = "0.4"
-aln_registry = { path = "../aln_registry" }
-aln_core = { path = "../../crates/aln_core" }
-aln_ubs = { path = "../../crates/aln_ubs" }
-ubs_oracle = { path = "../ubs_oracle" }
 
 [dev-dependencies]
 cosmwasm-std = { version = "0.19", features = ["test"] }
-criterion = "0.4"

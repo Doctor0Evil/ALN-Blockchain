@@ -19,6 +19,10 @@ pub trait Db {
     fn update_indexer_state_head<'a>(&'a self, chain_id: i64, height: i64, hash: &'a str) -> futures::future::BoxFuture<'a, Result<()>>;
     fn mark_range_non_canonical<'a>(&'a self, chain_id: i64, from_height: i64) -> futures::future::BoxFuture<'a, Result<()>>;
     fn replay_from<'a>(&'a self, chain_id: i64, start_height: i64) -> futures::future::BoxFuture<'a, Result<i64>>;
+    fn insert_token_class<'a>(&'a self, class_id: &'a str, name: &'a str, symbol: &'a str, params_json: &'a str, creator: &'a str, is_transferable: bool) -> futures::future::BoxFuture<'a, Result<()>>;
+    fn record_class_mint<'a>(&'a self, class_id: &'a str, amount: &'a str, block_height: i64) -> futures::future::BoxFuture<'a, Result<()>>;
+    fn record_class_burn<'a>(&'a self, class_id: &'a str, amount: &'a str, block_height: i64) -> futures::future::BoxFuture<'a, Result<()>>;
+    fn set_class_toxic<'a>(&'a self, class_id: &'a str, toxic: bool) -> futures::future::BoxFuture<'a, Result<()>>;
 }
 
 pub struct PostgresDb {
@@ -90,7 +94,7 @@ impl Db for PostgresDb {
     }
 
     // Replays canonical chain from height+1 to latest for this chain, rebuilding snapshots
-    fn replay_from<'a>(&'a self, chain_id: i64, start_height: i64) -> futures::future::BoxFuture<'a, Result<()>> {
+    fn replay_from<'a>(&'a self, chain_id: i64, start_height: i64) -> futures::future::BoxFuture<'a, Result<i64>> {
         Box::pin(async move {
             // get latest canonical height
             let latest: i64 = sqlx::query_scalar!("SELECT COALESCE(MAX(height), 0) FROM blocks WHERE is_canonical = true").fetch_one(&self.pool).await.context("fetch latest canonical height")?;
@@ -151,6 +155,40 @@ impl Db for PostgresDb {
             let last_hash: Option<String> = sqlx::query_scalar!("SELECT hash FROM blocks WHERE height = $1 LIMIT 1", last_height).fetch_optional(&self.pool).await.context("fetch last canonical hash")?;
             let last_hash_str = last_hash.unwrap_or_else(|| "".to_string());
             sqlx::query!("INSERT INTO indexer_state (last_canonical_height, last_canonical_hash, updated_at) VALUES ($1,$2,now()) ON CONFLICT DO UPDATE SET last_canonical_height = $1, last_canonical_hash = $2, updated_at = now()", last_height, last_hash_str).execute(&self.pool).await.context("update indexer state after mark non canonical")?;
+            Ok(())
+        })
+    }
+
+    fn insert_token_class<'a>(&'a self, class_id: &'a str, name: &'a str, symbol: &'a str, params_json: &'a str, creator: &'a str, is_transferable: bool) -> futures::future::BoxFuture<'a, Result<()>> {
+        Box::pin(async move {
+            sqlx::query!("INSERT INTO token_class (class_id, name, symbol, params, creator, is_transferable, created_at) VALUES ($1,$2,$3,$4,$5,$6,now()) ON CONFLICT (class_id) DO UPDATE SET name = EXCLUDED.name, symbol = EXCLUDED.symbol, params = EXCLUDED.params, creator = EXCLUDED.creator, is_transferable = EXCLUDED.is_transferable", class_id, name, symbol, params_json, creator, is_transferable)
+                .execute(&self.pool).await.context("insert token class")?;
+            // ensure stat row exists
+            sqlx::query!("INSERT INTO class_stats (class_id, total_minted, total_burned, toxic) VALUES ($1,'0','0',false) ON CONFLICT (class_id) DO NOTHING", class_id).execute(&self.pool).await.context("ensure class stat row")?;
+            Ok(())
+        })
+    }
+
+    fn record_class_mint<'a>(&'a self, class_id: &'a str, amount: &'a str, block_height: i64) -> futures::future::BoxFuture<'a, Result<()>> {
+        Box::pin(async move {
+            sqlx::query!("INSERT INTO class_mint (class_id, amount, block_height, created_at) VALUES ($1,$2,$3,now())", class_id, amount, block_height).execute(&self.pool).await.context("insert class mint")?;
+            // update class_stats; amounts stored as text -> numeric
+            sqlx::query!("INSERT INTO class_stats (class_id, total_minted, total_burned, toxic) VALUES ($1,$2,'0',false) ON CONFLICT (class_id) DO UPDATE SET total_minted = (COALESCE(class_stats.total_minted::numeric,0) + $2::numeric)::text", class_id, amount).execute(&self.pool).await.context("update class total minted")?;
+            Ok(())
+        })
+    }
+
+    fn record_class_burn<'a>(&'a self, class_id: &'a str, amount: &'a str, block_height: i64) -> futures::future::BoxFuture<'a, Result<()>> {
+        Box::pin(async move {
+            sqlx::query!("INSERT INTO class_mint (class_id, amount, block_height, created_at) VALUES ($1,$2,$3,now())", class_id, amount, block_height).execute(&self.pool).await.context("insert class burn row")?;
+            sqlx::query!("INSERT INTO class_stats (class_id, total_minted, total_burned, toxic) VALUES ($1,'0',$2,false) ON CONFLICT (class_id) DO UPDATE SET total_burned = (COALESCE(class_stats.total_burned::numeric,0) + $2::numeric)::text", class_id, amount).execute(&self.pool).await.context("update class total burned")?;
+            Ok(())
+        })
+    }
+
+    fn set_class_toxic<'a>(&'a self, class_id: &'a str, toxic: bool) -> futures::future::BoxFuture<'a, Result<()>> {
+        Box::pin(async move {
+            sqlx::query!("INSERT INTO class_stats (class_id, total_minted, total_burned, toxic) VALUES ($1,'0','0',$2) ON CONFLICT (class_id) DO UPDATE SET toxic = $2", class_id, toxic).execute(&self.pool).await.context("set class toxic")?;
             Ok(())
         })
     }
