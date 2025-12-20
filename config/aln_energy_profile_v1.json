@@ -1,0 +1,9 @@
+{
+  "version": "aln_energy_profile_v1",
+  "c_e": 1e-12,
+  "c_s": 5e-13,
+  "ae_cap": 10000000000000,
+  "csp_cap": 5000000000000,
+  "allowed_origins": ["eth", "kujira", "thorchain"],
+  "notes": "Canonical energy profile. Commit SHA-256 to be recorded in release artifacts."
+}

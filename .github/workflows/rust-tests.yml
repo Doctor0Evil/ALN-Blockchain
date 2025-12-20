@@ -1,0 +1,25 @@
+name: Rust tests (aln-energy)
+
+on:
+  push:
+    paths:
+      - 'aln/energy/**'
+      - 'aln/aln-energy-ledger/**'
+  pull_request:
+    paths:
+      - 'aln/energy/**'
+      - 'aln/aln-energy-ledger/**'
+
+jobs:
+  aln-energy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Run tests for aln-energy
+        working-directory: aln/energy
+        run: cargo test --verbose
