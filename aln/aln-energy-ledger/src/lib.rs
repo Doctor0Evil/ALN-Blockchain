@@ -30,6 +30,10 @@ pub struct Ledger {
     pub total_csp: u128,
 }
 
+// UBSecurity + sealed refactor modules
+pub mod ub_security;
+pub mod sealed_refactor;
+
 impl Ledger {
     pub fn hash_event(e: &EnergyEvent) -> [u8; 32] {
         let mut hasher = Sha256::new();

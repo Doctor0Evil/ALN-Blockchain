@@ -1,0 +1,4 @@
+{
+  "primary_did": "did:ion:EiD8J2b3K8k9Q8x9L7m2n4p1q5r6s7t8u9v0w1x2y3z4A5B6C7D8E9F0",
+  "description": "Public identifier for CI, automation, and service identities. No secrets are stored here. This is a demo DID for CI/logging and verification purposes."
+}

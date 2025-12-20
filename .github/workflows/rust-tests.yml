@@ -2,10 +2,12 @@ name: Rust tests (aln-energy)
 
 on:
   push:
+    branches: [ main ]
     paths:
       - 'aln/energy/**'
       - 'aln/aln-energy-ledger/**'
   pull_request:
+    branches: [ main ]
     paths:
       - 'aln/energy/**'
       - 'aln/aln-energy-ledger/**'
@@ -19,7 +21,16 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          profile: minimal
           override: true
+      - name: Export DID identity
+        run: bash infra/ci/export_did_identity.sh
+      - name: Show ALN_PRIMARY_DID (public)
+        run: echo "ALN_PRIMARY_DID=$ALN_PRIMARY_DID"
       - name: Run tests for aln-energy
-        working-directory: aln/energy
-        run: cargo test --verbose
+        run: cargo test --manifest-path aln/energy/Cargo.toml --verbose
+      - name: Run tests for aln-energy-ledger
+        run: cargo test --manifest-path aln/aln-energy-ledger/Cargo.toml --verbose
+      - name: Check ub_security feature builds (allowed to fail until SQL wiring is complete)
+        continue-on-error: true
+        run: cargo check --manifest-path aln/aln-energy-ledger/Cargo.toml --features ub_security --quiet # TODO: add sqlx tests when DB wiring is complete
