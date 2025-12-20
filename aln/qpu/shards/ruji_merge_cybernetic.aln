@@ -1,0 +1,11 @@
+destination_path,/aln/qpu/shards/ruji_merge_cybernetic.aln
+source_chain,Rujira
+source_asset,RUJI
+aln_tokens,AU.ET,CSP
+mapping,AE=B_ruji*10^(-d_src)*cE;AS=B_ruji*10^(-d_src)*cS;BE=floor(AE*10^(d_aln));BS=floor(AS*10^(d_aln))
+cE,1e-12
+cS,5e-13
+decimals_src,6
+decimals_aln,6
+safety_envelopes,SAR<=2_W/kg;TI<=TI_hard;CEM43<=profile_limits
+neurorights,strictest_wins;no_raw_neural;no_hidden_actuation
