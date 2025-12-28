@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "chains": [
+    {
+      "chainId": "bostrom",
+      "chainName": "bostrom",
+      "rpc": "https://rpc.bostrom.cybernode.ai:443",
+      "rest": "https://lcd.bostrom.cybernode.ai",
+      "bip44": {
+        "coinType": 118
+      },
+      "coinType": 118,
+      "bech32Config": {
+        "bech32PrefixAccAddr": "bostrom",
+        "bech32PrefixAccPub": "bostrompub",
+        "bech32PrefixValAddr": "bostromvaloper",
+        "bech32PrefixValPub": "bostromvaloperpub",
+        "bech32PrefixConsAddr": "bostromvalcons",
+        "bech32PrefixConsPub": "bostromvalconspub"
+      },
+      "currencies": [
+        {
+          "coinDenom": "BOOT",
+          "coinMinimalDenom": "boot",
+          "coinDecimals": 6,
+          "coinGeckoId": "unknown"
+        }
+      ],
+      "feeCurrencies": [
+        {
+          "coinDenom": "BOOT",
+          "coinMinimalDenom": "boot",
+          "coinDecimals": 6,
+          "coinGeckoId": "unknown",
+          "gasPriceStep": {
+            "low": 0.01,
+            "average": 0.025,
+            "high": 0.03
+          }
+        }
+      ],
+      "gasPriceStep": {
+        "low": 0.01,
+        "average": 0.025,
+        "high": 0.03
+      },
+      "stakeCurrency": {
+        "coinDenom": "BOOT",
+        "coinMinimalDenom": "boot",
+        "coinDecimals": 6,
+        "coinGeckoId": "unknown"
+      },
+      "features": []
+    },
+    {
+      "chainId": "aln-local-1",
+      "chainName": "ALN",
+      "rpc": "http://127.0.0.1:26657",
+      "rest": "http://127.0.0.1:1317",
+      "bip44": {
+        "coinType": 118
+      },
+      "coinType": 118,
+      "bech32Config": {
+        "bech32PrefixAccAddr": "aln",
+        "bech32PrefixAccPub": "alnpub",
+        "bech32PrefixValAddr": "alnvaloper",
+        "bech32PrefixValPub": "alnvaloperpub",
+        "bech32PrefixConsAddr": "alnvalcons",
+        "bech32PrefixConsPub": "alnvalconspub"
+      },
+      "currencies": [
+        {
+          "coinDenom": "ALN",
+          "coinMinimalDenom": "ualn",
+          "coinDecimals": 6,
+          "coinGeckoId": "unknown"
+        },
+        {
+          "coinDenom": "AU.ET",
+          "coinMinimalDenom": "uauet",
+          "coinDecimals": 6,
+          "coinGeckoId": "unknown"
+        },
+        {
+          "coinDenom": "CSP",
+          "coinMinimalDenom": "ucsp",
+          "coinDecimals": 6,
+          "coinGeckoId": "unknown"
+        }
+      ],
+      "feeCurrencies": [
+        {
+          "coinDenom": "ALN",
+          "coinMinimalDenom": "ualn",
+          "coinDecimals": 6,
+          "coinGeckoId": "unknown",
+          "gasPriceStep": {
+            "low": 0.01,
+            "average": 0.025,
+            "high": 0.03
+          }
+        }
+      ],
+      "gasPriceStep": {
+        "low": 0.01,
+        "average": 0.025,
+        "high": 0.03
+      },
+      "stakeCurrency": {
+        "coinDenom": "ALN",
+        "coinMinimalDenom": "ualn",
+        "coinDecimals": 6,
+        "coinGeckoId": "unknown"
+      },
+      "features": [
+        "stargate",
+        "ibc-transfer",
+        "cosmwasm"
+      ]
+    }
+  ]
+}
