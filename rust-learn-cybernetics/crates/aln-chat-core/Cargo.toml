@@ -1,0 +1,11 @@
+[package]
+name = "aln-chat-core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = false
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+uuid = { workspace = true }
