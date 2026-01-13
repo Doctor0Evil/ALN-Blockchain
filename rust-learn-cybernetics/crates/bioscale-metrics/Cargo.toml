@@ -1,0 +1,9 @@
+[package]
+name = "bioscale-metrics"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+metrics = { workspace = true }
+metrics-exporter-prometheus = { workspace = true }
+once_cell = { workspace = true }
