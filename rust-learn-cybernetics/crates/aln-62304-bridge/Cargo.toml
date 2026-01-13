@@ -1,0 +1,9 @@
+[package]
+name = "aln-62304-bridge"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+bioscale-evidence = { path = "../bioscale-evidence" }
+aln-templates = { path = "../aln-templates" }
