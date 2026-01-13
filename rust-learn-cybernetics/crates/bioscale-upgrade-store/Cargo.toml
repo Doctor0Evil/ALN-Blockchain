@@ -1,0 +1,14 @@
+[package]
+name = "bioscale-upgrade-store"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+kani = { workspace = true, optional = true }
+
+[features]
+kani = ["dep:kani"]
