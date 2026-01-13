@@ -1,0 +1,9 @@
+[package]
+name = "cyberswarm-neurostack"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+bioscale-upgrade-store = { path = "../bioscale-upgrade-store" }
+aln-core = { path = "../aln-core" }
