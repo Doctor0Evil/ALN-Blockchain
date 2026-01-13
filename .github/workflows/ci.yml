@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install Kani
+        uses: model-checking/kani-github-action@v1.2
+        with:
+          use-cache: true
+
+      - name: Cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: Cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Cargo test
+        run: cargo test --all
+
+      - name: Kani proofs
+        run: |
+          cargo kani -p bioscale-upgrade-store || true
+
+      - name: Build evolution manifest
+        run: |
+          mkdir -p target/manifests
+          cargo run -p bioscale-evolution-cli -- --emit target/manifests
+
+      - name: Archive research manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-manifest
+          path: target/manifests
